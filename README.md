@@ -7,3 +7,4 @@ You will also want to make the fragment/cog/module code usable only to you too.
 Current issues:
 - No Checks for Owner
 - Fragments/modules does not save inbetween reboots.
+- Help menu does not show up.... sometimes.
