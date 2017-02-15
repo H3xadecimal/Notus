@@ -1,9 +1,9 @@
-# Xeili-DiscordBot (DEV/PERSONAL VERSION)
-Xeili is a VERY EARLY INCOMPLETE discord bot framework built on Python.
+# Xeili (DEVELOPER BUILD)
+Xeili is a discord bot built on Python using the discord.py library.
 
 Special thanks to github user Pandentia for help with the code.
 
-This branch is for the personal/dev version of Xeili.
+This branch is for the developer build of Xeili.
 
 # B..but what's the difference?
 This branch includes more stuff like Tracebacks and a few more code fixes.
