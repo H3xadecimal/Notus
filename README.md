@@ -1,15 +1,24 @@
-# Xeili-DiscordBot
+# Xeili-DiscordBot (DEV/PERSONAL VERSION)
 Xeili is a VERY EARLY INCOMPLETE discord bot framework built on Python.
 
-If you want to use this very early build, You will have to add your token in XeiliWP.py and your ID in fragments/compact.py then run XeiliWP.py
-You will also want to make the fragment/cog/module code usable only to you too.
+Special thanks to github user Pandentia for help with the code.
 
-Current issues:
-- No Checks for Owner
-- Fragments/modules does not save inbetween reboots.
-- Help menu does not show up.... sometimes.
+This branch is for the personal/dev version of Xeili.
 
+# B..but what's the difference?
+This branch includes more stuff like Tracebacks and a few more code fixes.
+The 'fragment' system has also been renamed to just 'module' as fragments was too corny.
+All core commands now have a semi-proper checks (or as i like to call it, Confirm) instead of using ifs.
+This branch is most likely gonna be more developped than the Master branch and eventually merged when ready.
 
+# O..okay but, can I use it?
+All you have to do is put your ID in utils/confirm.py and your token in Xeili.py and you're good to go.
 
+Default prefix is "test " can be changed in Xeili.py
 
-Oh also if you're wondering, XeiliWP stands for Xeili Working Prototype.
+# HELP I'M HAVING ISSUES!!!!11!
+Open a damn Issue then.
+(I accept both User-side and Bot-side issues.)
+
+# Why this branch tho?
+Cause I know I am gonna lose the code at some point.... Don't judge me.
