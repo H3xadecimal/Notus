@@ -30,14 +30,14 @@ class Xeili(commands.Bot):
                 .format(type(exception).__name__, context.command.qualified_name, _traceback, exception)
             await xeili.send_message(context.message.channel, error)
 
-    async def send_cmd_help(self, ctx):
-        if ctx.invoked_subcommand:
-            _help = xeili.formatter.format_help_for(ctx, ctx.invoked_subcommand)
-        else:
-            _help = xeili.formatter.format_help_for(ctx, ctx.command)
-        for page in _help:
-            # noinspection PyUnresolvedReferences
-            await xeili.send_message(ctx.message.channel, page)
+async def send_cmd_help(ctx):
+    if ctx.invoked_subcommand:
+        _help = xeili.formatter.format_help_for(ctx, ctx.invoked_subcommand)
+    else:
+        _help = xeili.formatter.format_help_for(ctx, ctx.command)
+    for page in _help:
+        # noinspection PyUnresolvedReferences
+        await xeili.send_message(ctx.message.channel, page)
 
     async def on_message(self, message):
         if message.author.bot:

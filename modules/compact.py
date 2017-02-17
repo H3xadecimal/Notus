@@ -8,7 +8,7 @@ from utils import confirm
 class core:
     def __init__(self, xeili):
         self.xeili = xeili
-        self.firmware = "Xeili Compact 0.0.4 (Original Firmware)"
+        self.firmware = "Xeili Compact 0.0.5 (Original Firmware)"
 
     @commands.command(aliases=['cog'])
     @confirm.instance_owner()
@@ -68,9 +68,9 @@ class core:
     @commands.command(aliases=['kys'])
     @confirm.instance_owner()
     async def shutdown(self):
+        """Shuts down the bot.... Duh."""
         await self.xeili.say("Logging out...")
         await self.xeili.logout()
-
 
 def setup(xeili):
     xeili.add_cog(core(xeili))
