@@ -13,6 +13,11 @@ This branch is most likely gonna be more developped than the Master branch and e
 
 # O..okay but, can I use it?
 All you have to do is put your ID in utils/confirm.py and your token in Xeili.py and you're good to go.
+To boot the bot on Windows or any OS you HAVE to have Redis installed.
+Ports & Redis Database to be used can be set using --port and --db arguments.
+Booting Xeili without arguments will result into connecting to Redis with the default configuration, Being port 6379 and Redis_Database 0.
+
+Don't understand how to set it up? Well you can mention me in the following discord server: https://discord.gg/5sHTkKq
 
 Default prefix is "test " can be changed in Xeili.py
 
