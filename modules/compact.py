@@ -3,12 +3,30 @@ from discord.ext import commands
 import importlib
 import inspect
 from utils import confirm
+from utils.dataIO import dataIO
 
 
 class core:
     def __init__(self, xeili):
         self.xeili = xeili
-        self.firmware = "Xeili Compact 0.0.5 (Original Firmware)"
+        self.firmware = "Xeili Compact 0.0.2 (Original Firmware)"
+        self.settings = dataIO.load_json('settings')
+        self.post_task = self.xeili.loop.create_task(self.post())
+
+    def __unload(self):
+        self.post_task.cancel()
+
+    async def post(self):
+        if 'modules' not in self.settings:
+            self.settings['modules'] = []
+        else:
+            for module in self.settings['modules']:
+                if module not in list(self.xeili.extensions):
+                    try:
+                        self.xeili.load_extension(module)
+                    except:
+                        self.settings['modules'].remove(module)
+                        print("A module blew up... Idk which tho.")
 
     @commands.command(aliases=['cog'])
     @confirm.instance_owner()
@@ -21,6 +39,7 @@ class core:
                 plugin = importlib.import_module(module_name)
                 importlib.reload(plugin)
                 self.xeili.load_extension(plugin.__name__)
+                self.settings['modules'].append(module_name)
                 await self.xeili.say('Input accepted, Module loaded.')
             else:
                 await self.xeili.say('Ignoring Input, Module already loaded.')
@@ -29,6 +48,7 @@ class core:
                 plugin = importlib.import_module(module_name)
                 importlib.reload(plugin)
                 self.xeili.unload_extension(plugin.__name__)
+                self.settings['modules'].remove(module_name)
                 await self.xeili.say('Input accepted, Module unloaded.')
             else:
                 await self.xeili.say('Ignoring Input, Module not loaded or not found.')

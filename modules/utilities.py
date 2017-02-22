@@ -3,14 +3,10 @@ from discord.ext import commands
 from utils import confirm
 from __main__ import send_cmd_help
 
+
 class utilities:
     def __init__(self, xeili):
         self.xeili = xeili
-
-    # Custom Errors test.
-    async def raise_error_CommandIncomplete(self, ctx):
-        await self.xeili.say("This command is incomplete. We're working on it.")
-        # This is gonna be used later on, Don't mind it.
 
     @commands.command()
     async def ping(self):
@@ -35,6 +31,26 @@ class utilities:
                 await self.xeili.say("Character count is over 32!... Try with less characters.")
         except:
             await self.xeili.say("Error changing nickname, either `Lacking Permissions` or `Something Blew Up`.")
+
+    @utils_set.command(name="game", pass_context=True)
+    async def utils_set_game(self, ctx, *, game: str=None):
+        """Sets Bot's playing status."""
+        server = ctx.message.server
+        statooos = server.me.status
+        if game is not None:
+            await self.xeili.change_presence(game=discord.Game(name=game), status=statooos)
+            await self.xeili.say("Done.")
+        else:
+            await self.xeili.change_presence(game=discord.Game(name=None), status=statooos)
+            await self.xeili.say("Done.")
+
+    @utils_set.command(name="status", pass_context=True)
+    async def utils_set_status(self, ctx):
+        """Sets bot presence."""
+        discord_status = 'online', 'invisible', 'idle', 'dnd'
+        game = ctx.message.server.me.game
+        await self.xeili.say("This command is incomplete.")
+
 
 
 def setup(xeili):
