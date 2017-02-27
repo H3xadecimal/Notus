@@ -7,15 +7,15 @@ import discord.errors
 import redis
 import os
 import argparse
+import json
 
-redis_host = os.environ.get('XEILI_REDIS_HOST', 'localhost')
-redis_pass = os.environ.get('XEILI_REDIS_PASSWORD', None)
-try:
-    redis_port = int(os.environ.get('XEILI_REDIS_PORT', 6379))
-    redis_db = int(os.environ.get('XEILI_REDIS_DB', 0))
-except ValueError:
-    print('aaaaaaaaaaa somethings on fire!')
-    exit(4)
+with open("config.json") as f:
+    config = json.load(f)
+
+redis_host = config.get('XEILI_REDIS_HOST') or 'localhost'
+redis_pass = config.get('XEILI_REDIS_PASSWORD')
+redis_port = int(config.get('XEILI_REDIS_PORT') or 6379)
+redis_db = int(config.get('XEILI_REDIS_DB') or 0)
 
 # CMD-L Arguments
 parser = argparse.ArgumentParser()
@@ -35,47 +35,50 @@ except:
 
 
 class Xeili(commands.Bot):
-    def __init__(self, command_prefix, **options):
+    def __init__(self, command_prefix, args, redis, **options):
         super().__init__(command_prefix, **options)
         self.args = args
-        self.redis = redis_conn
+        self.redis = redis
 
     async def on_ready(self):
         self.redis.set('__info__', 'This database is being used by the Xeili Framework.')
         print('Ready.')
-        print(xeili.user.name)
+        print(self.user.name)
 
-        xeili.load_extension('modules.compact')
+        self.load_extension('modules.compact')
 
     async def on_command_error(self, exception, context):
         channel = context.message.channel
         if isinstance(exception, commands.errors.CommandNotFound):
             pass
         if isinstance(exception, commands.errors.MissingRequiredArgument):
-            await xeili.send_cmd_help(context)
+            await self.send_cmd_help(context)
         elif isinstance(exception, commands.errors.CommandInvokeError):
             # Thanks for the code Pand <3
-            exception = exception.original
-            _traceback = traceback.format_tb(exception.__traceback__)
-            _traceback = ''.join(_traceback)
-            error = '`{0}` in command `{1}`: ```py\nTraceback (most recent call last):\n{2}{0}: {3}\n```'\
-                .format(type(exception).__name__, context.command.qualified_name, _traceback, exception)
-            await xeili.send_message(context.message.channel, error)
+            tb = traceback.format_exc()
+            error = '`{0}` in command `{1}`: ```py\n{2}\n```'\
+                .format(type(exception).__name__, context.command.qualified_name, tb)
+            try:
+                await self.send_message(context.message.channel, error)
+            except:
+                print("Traceback too long!")
+                await self.send_message(context.message.channel, "An error occured executing command: {}"\
+                    .format(context.command.qualified_name))
 
 async def send_cmd_help(ctx):
     if ctx.invoked_subcommand:
-        _help = xeili.formatter.format_help_for(ctx, ctx.invoked_subcommand)
+        _help = self.formatter.format_help_for(ctx, ctx.invoked_subcommand)
     else:
-        _help = xeili.formatter.format_help_for(ctx, ctx.command)
+        _help = self.formatter.format_help_for(ctx, ctx.command)
     for page in _help:
         # noinspection PyUnresolvedReferences
-        await xeili.send_message(ctx.message.channel, page)
+        await self.send_message(ctx.message.channel, page)
 
     async def on_message(self, message):
         if message.author.bot:
             return
-        await xeili.process_commands(message)
+        await self.process_commands(message)
 
 
-xeili = Xeili('test ')
+xeili = Xeili('test ', args, redis_conn)
 xeili.run('token')
