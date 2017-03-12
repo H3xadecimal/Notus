@@ -67,12 +67,12 @@ class Xeili(commands.Bot):
 
 async def send_cmd_help(ctx):
     if ctx.invoked_subcommand:
-        _help = self.formatter.format_help_for(ctx, ctx.invoked_subcommand)
+        _help = ctx.bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
     else:
-        _help = self.formatter.format_help_for(ctx, ctx.command)
+        _help = ctx.bot.formatter.format_help_for(ctx, ctx.command)
     for page in _help:
         # noinspection PyUnresolvedReferences
-        await self.send_message(ctx.message.channel, page)
+        await ctx.bot.send_message(ctx.message.channel, page)
 
     async def on_message(self, message):
         if message.author.bot:
