@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from utils import dataIO
+from utils.dataIO import dataIO
 import asyncio
 import traceback
 import discord.errors
@@ -39,6 +39,14 @@ class Xeili(commands.Bot):
         super().__init__(command_prefix, **options)
         self.args = args
         self.redis = redis
+        self.settings = dataIO.load_json('settings')
+        self.blacklist_check = self.loop.create_task(self.blacklist_check())
+
+    async def blacklist_check(self):
+        if 'blacklist' not in self.settings:
+            self.settings['blacklist'] = []
+        else:
+            pass
 
     async def on_ready(self):
         self.redis.set('__info__', 'This database is being used by the Xeili Framework.')
@@ -65,6 +73,13 @@ class Xeili(commands.Bot):
                 await self.send_message(context.message.channel, "An error occured executing command: {}"\
                     .format(context.command.qualified_name))
 
+    async def on_message(self, message):
+        if message.author.bot:
+            return
+        if message.author.id in self.settings['blacklist']:
+            return
+        await self.process_commands(message)
+
 async def send_cmd_help(ctx):
     if ctx.invoked_subcommand:
         _help = ctx.bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
@@ -74,11 +89,6 @@ async def send_cmd_help(ctx):
         # noinspection PyUnresolvedReferences
         await ctx.bot.send_message(ctx.message.channel, page)
 
-    async def on_message(self, message):
-        if message.author.bot:
-            return
-        await self.process_commands(message)
-
 
 xeili = Xeili('test ', args, redis_conn)
-xeili.run('token')
+xeili.run('TOKEN')

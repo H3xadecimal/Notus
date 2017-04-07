@@ -2,18 +2,30 @@ import discord
 from discord.ext import commands
 from utils import confirm
 from __main__ import send_cmd_help
+from utils.dataIO import dataIO
 
 
 class utilities:
     def __init__(self, xeili):
         self.xeili = xeili
+        self.settings = dataIO.load_json('settings')
+        self.database_checks = self.xeili.loop.create_task(self.db_check())
+
+    def __unload(self):
+        self.database_checks.cancel()
+
+    async def db_check(self):
+        if 'owners' not in self.settings:
+            self.settings['owners'] = []
+        else:
+            pass
 
     @commands.command()
     async def ping(self):
         """Pong."""
         await self.xeili.say("Pong.")
 
-    @commands.group(name="set", pass_context=True, invoke_without_command=True)
+    @commands.group(name="set", pass_context=True, invoke_without_subcommand=True)
     @confirm.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
@@ -51,6 +63,39 @@ class utilities:
         game = ctx.message.server.me.game
         await self.xeili.say("This command is incomplete.")
 
+    @utils_set.command(name="owner", pass_context=True)
+    async def utils_set_owner(self, user: discord.Member):
+        """Sets other owners."""
+        self.settings['owners'].append(user.id)
+        await self.xeili.say("User set as owner.")
+
+    @commands.group(name="blacklist", pass_context=True, invoke_without_subcommand=True)
+    @confirm.instance_owner()
+    async def blacklist_commands(self, ctx):
+        """Prevents a user from using the bot globally."""
+        if ctx.invoked_subcommand is None:
+            await send_cmd_help(ctx)
+
+    @blacklist_commands.command(name="add", pass_context=True)
+    async def add_blacklist(self, ctx, user: discord.Member):
+        """Adds a user to blacklist."""
+        if user.id not in self.settings['blacklist']:
+            try:
+                self.settings['blacklist'].append(user.id)
+                await self.xeili.say("User blacklisted.")
+            except:
+                await self.xeili.say("An error occured.")
+        else:
+            await self.xeili.say("User already blacklisted.")
+
+    @blacklist_commands.command(name="remove", pass_context=True)
+    async def remove_blacklist(self, ctx, user: discord.Member):
+        """Removes a user from blacklist."""
+        if user.id not in self.settings['blacklist']:
+            await self.xeili.say("User is not blacklisted.")
+        else:
+            self.settings['blacklist'].remove(user.id)
+            await self.xeili.say("User removed from blacklist.")
 
 
 def setup(xeili):
