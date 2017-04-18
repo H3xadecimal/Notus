@@ -16,6 +16,8 @@ redis_host = config.get('XEILI_REDIS_HOST') or 'localhost'
 redis_pass = config.get('XEILI_REDIS_PASSWORD')
 redis_port = int(config.get('XEILI_REDIS_PORT') or 6379)
 redis_db = int(config.get('XEILI_REDIS_DB') or 0)
+token = config.get('XEILI_TOKEN')
+prefix = config.get('XEILI_PREFIX')
 
 # CMD-L Arguments
 parser = argparse.ArgumentParser()
@@ -62,16 +64,14 @@ class Xeili(commands.Bot):
         if isinstance(exception, commands.errors.MissingRequiredArgument):
             await self.send_cmd_help(context)
         elif isinstance(exception, commands.errors.CommandInvokeError):
-            # Thanks for the code Pand <3
-            tb = traceback.format_exc()
-            error = '`{0}` in command `{1}`: ```py\n{2}\n```'\
-                .format(type(exception).__name__, context.command.qualified_name, tb)
-            try:
-                await self.send_message(context.message.channel, error)
-            except:
-                print("Traceback too long!")
-                await self.send_message(context.message.channel, "An error occured executing command: {}"\
-                    .format(context.command.qualified_name))
+             exception = exception.original
+             _traceback = traceback.format_tb(exception.__traceback__)
+             _traceback = ''.join(_traceback)
+             error = '`{0}` in command `{1}`: ```py\nTraceback (most recent call last):\n{2}{0}: {3}\n```'\
+                 .format(type(exception).__name__, context.command.qualified_name, _traceback, exception)
+             await context.send(error)
+        elif isinstance(exception, commands.errors.CommandNotFound):
+             pass
 
     async def on_message(self, message):
         if message.author.bot:
@@ -80,15 +80,15 @@ class Xeili(commands.Bot):
             return
         await self.process_commands(message)
 
-async def send_cmd_help(ctx):
+async def send_cmd_help(self, ctx):
     if ctx.invoked_subcommand:
-        _help = ctx.bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
+        _help = await ctx.bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
     else:
-        _help = ctx.bot.formatter.format_help_for(ctx, ctx.command)
+        _help = await ctx.bot.formatter.format_help_for(ctx, ctx.command)
     for page in _help:
         # noinspection PyUnresolvedReferences
-        await ctx.bot.send_message(ctx.message.channel, page)
+        await ctx.send(page)
 
 
-xeili = Xeili('test ', args, redis_conn)
-xeili.run('TOKEN')
+xeili = Xeili(prefix, args, redis_conn)
+xeili.run(token)

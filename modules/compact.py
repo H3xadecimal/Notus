@@ -30,7 +30,7 @@ class core:
 
     @commands.command(aliases=['cog'])
     @confirm.instance_owner()
-    async def module(self, name: str, argument: str):
+    async def module(self, ctx, name: str, argument: str):
         """Module management."""
         module_name = 'modules.{0}'.format(name)
         argumentlist = ["--load", "--unload", "--reload", None]
@@ -40,56 +40,59 @@ class core:
                 importlib.reload(plugin)
                 self.xeili.load_extension(plugin.__name__)
                 self.settings['modules'].append(module_name)
-                await self.xeili.say('Input accepted, Module loaded.')
+                await ctx.send('Input accepted, Module loaded.')
             else:
-                await self.xeili.say('Ignoring Input, Module already loaded.')
+                await ctx.send('Ignoring Input, Module already loaded.')
         if argument == '--unload':
             if module_name in list(self.xeili.extensions):
                 plugin = importlib.import_module(module_name)
                 importlib.reload(plugin)
                 self.xeili.unload_extension(plugin.__name__)
                 self.settings['modules'].remove(module_name)
-                await self.xeili.say('Input accepted, Module unloaded.')
+                await ctx.send('Input accepted, Module unloaded.')
             else:
-                await self.xeili.say('Ignoring Input, Module not loaded or not found.')
+                await ctx.send('Ignoring Input, Module not loaded or not found.')
         if argument == '--reload':
             if module_name in list(self.xeili.extensions):
                 plugin = importlib.import_module(module_name)
                 importlib.reload(plugin)
                 self.xeili.unload_extension(plugin.__name__)
                 self.xeili.load_extension(plugin.__name__)
-                await self.xeili.say('Input accepted, Module reloaded.')
+                await ctx.send('Input accepted, Module reloaded.')
             else:
-                await self.xeili.say('Ignoring Input, Specified Module is not loaded.')
+                await ctx.send('Ignoring Input, Specified Module is not loaded.')
         if argument not in argumentlist:
-            await self.xeili.say('Invalid argument, To see all arguments please do `xei arguments`')
+            await ctx.send('Invalid argument, To see all arguments please do `xei arguments`')
 
     @commands.command()
-    async def arguments(self):
+    async def arguments(self, ctx):
         """Lists all arguments."""
-        await self.xeili.say("Arguments for Fragments Include: `--load, --unload & --reload`.")
+        await ctx.send("Arguments for Fragments Include: `--load, --unload & --reload`.")
 
-    @commands.command(pass_context=True, hidden=True, aliases=['debug'])
+    @commands.command(aliases=['debug'])
     @confirm.instance_owner()
     async def eval(self, ctx, *, code: str):
         message = ctx.message
         author = ctx.message.author
         channel = ctx.message.channel
-        server = ctx.message.server
-        client = ctx.bot
-        bot = ctx.bot
+        guild = ctx.message.guild
+        ctx = ctx
+        bot = self.xeili
+        client = self.xeili
 
         output = eval(code)
         if inspect.isawaitable(output):
             output = await output
+        else:
+            pass
 
-        await self.xeili.say('```py\n{0}\n```'.format(output))
+        await ctx.send('```py\n{0}\n```'.format(output))
 
     @commands.command(aliases=['kys'])
     @confirm.instance_owner()
-    async def shutdown(self):
+    async def shutdown(self, ctx):
         """Shuts down the bot.... Duh."""
-        await self.xeili.say("Logging out...")
+        await ctx.send("Logging out...")
         await self.xeili.logout()
 
 def setup(xeili):

@@ -2,7 +2,7 @@ from discord.ext import commands
 
 
 def is_owner_check(ctx):
-    return ctx.message.author.id == "ID"
+    return str(ctx.message.author.id) in ['ID']
 
 
 def instance_owner():
