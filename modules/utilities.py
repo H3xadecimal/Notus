@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from utils import confirm
 from utils.dataIO import dataIO
-from random import choice
 
 
 class utilities:
@@ -22,7 +21,7 @@ class utilities:
 
     @commands.command()
     async def ping(self, ctx):
-        """Pokes Ovy."""
+        """Pong."""
         await ctx.send("Pong.")
 
     @commands.group(name="set", invoke_without_subcommand=True)
