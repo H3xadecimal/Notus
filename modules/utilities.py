@@ -1,8 +1,8 @@
 import discord
 from discord.ext import commands
 from utils import confirm
-from __main__ import send_cmd_help
 from utils.dataIO import dataIO
+from random import choice
 
 
 class utilities:
@@ -22,15 +22,14 @@ class utilities:
 
     @commands.command()
     async def ping(self, ctx):
-        """Pong."""
+        """Pokes Ovy."""
         await ctx.send("Pong.")
 
     @commands.group(name="set", invoke_without_subcommand=True)
     @confirm.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
-        if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+        await self.xeili.send_command_help(ctx)
 
     @utils_set.command(name="nickname")
     async def utils_set_nickname(self, ctx, *, name: str=None):
@@ -73,8 +72,7 @@ class utilities:
     @confirm.instance_owner()
     async def blacklist_commands(self, ctx):
         """Prevents a user from using the bot globally."""
-        if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+        await self.xeili.send_command_help(ctx)
 
     @blacklist_commands.command(name="add")
     async def add_blacklist(self, ctx, user: discord.Member):

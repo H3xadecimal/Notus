@@ -41,6 +41,7 @@ class Xeili(commands.Bot):
         super().__init__(command_prefix, **options)
         self.args = args
         self.redis = redis
+        self.send_command_help = send_cmd_help
         self.settings = dataIO.load_json('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
 
@@ -80,7 +81,7 @@ class Xeili(commands.Bot):
             return
         await self.process_commands(message)
 
-async def send_cmd_help(self, ctx):
+async def send_cmd_help(ctx):
     if ctx.invoked_subcommand:
         _help = await ctx.bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
     else:
