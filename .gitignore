@@ -1,0 +1,5 @@
+config.json
+pm2.json
+.sync/*
+logs/*
+*/__pycache__/*

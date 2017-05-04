@@ -1,0 +1,8 @@
+{
+    "XEILI_REDIS_HOST": "localhost",
+    "XEILI_REDIS_PASSWORD": "",
+    "XEILI_REDIS_PORT": 6379,
+    "XEILI_REDIS_DB": 0,
+    "XEILI_TOKEN": "TOKEN",
+    "XEILI_PREFIX": "test "
+}
