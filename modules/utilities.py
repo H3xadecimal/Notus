@@ -1,4 +1,4 @@
-import discord
+import discord, asyncio
 from discord.ext import commands
 from utils import confirm
 from utils.dataIO import dataIO
@@ -93,6 +93,24 @@ class utilities:
         else:
             self.settings['blacklist'].remove(user.id)
             await ctx.send("User removed from blacklist.")
+
+    @commands.command(aliases=['clean'])
+    async def cleanup(self, ctx):
+        """Cleans up the bot's messages."""
+        msgs = await ctx.message.channel.history(limit=100).flatten()
+        msgs = [msg for msg in msgs if msg.author.id == self.xeili.user.id]
+
+        if len(msgs) > 0 and ctx.me.permissions_in(ctx.channel).manage_messages:
+            await ctx.channel.delete_messages(msgs)
+        elif len(msgs) > 0:
+            for msg in msgs:
+                await msg.delete()
+        else:
+            return
+        
+        msg = await ctx.send("Cleaned `{}`".format(len(msgs)))
+        await asyncio.sleep(2.5)
+        await msg.delete()
 
 
 def setup(xeili):
