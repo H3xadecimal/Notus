@@ -1,4 +1,6 @@
-import discord, asyncio
+import discord
+import asyncio
+import aiohttp
 from discord.ext import commands
 from utils import confirm
 from utils.dataIO import dataIO
@@ -66,6 +68,22 @@ class utilities:
         """Sets other owners."""
         self.settings['owners'].append(user.id)
         await ctx.send("User set as owner.")
+
+    @utils_set.command(name="avatar")
+    async def utils_set_avatar(self, ctx, url: str=None):
+        """ Changes the bots avatar """
+        if url is None:
+            if not ctx.message.attachments:
+                return await ctx.say("No avatar found! Provide an Url or Attachment!")
+            else:
+                url = ctx.message.attachments[0].get("url")
+        async with aiohttp.ClientSession() as s, s.get(url) as r:
+            if 200 <= r.status_code < 300:
+                content = await r.read()
+            else:
+                return await ctx.send("Invalid Response code: {}".format(r.status_code))
+        await self.xeili.user.edit(avatar=content)
+        await ctx.send("Successfully updated avatar!")
 
     @commands.group(name="blacklist", invoke_without_subcommand=True)
     @confirm.instance_owner()
