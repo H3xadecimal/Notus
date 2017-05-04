@@ -1,4 +1,5 @@
 {
+    "COMMENT": "Copy this file as 'config.json' and substitute the values for what you want.",
     "XEILI_REDIS_HOST": "localhost",
     "XEILI_REDIS_PASSWORD": "",
     "XEILI_REDIS_PORT": 6379,
