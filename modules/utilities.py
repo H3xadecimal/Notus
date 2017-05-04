@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import aiohttp
+import mimetypes
 from discord.ext import commands
 from utils import confirm
 from utils.dataIO import dataIO
@@ -77,12 +78,24 @@ class utilities:
                 return await ctx.say("No avatar found! Provide an Url or Attachment!")
             else:
                 url = ctx.message.attachments[0].get("url")
+        
+        ext = url.split(".")[-1]
+        mime = mimetypes.types_map.get(ext)
+        if mime is not None and not mime.startswith("image"):
+            # None can still be an image
+            return await ctx.send("Url or Attachment is not an Image!")
+        
         async with aiohttp.ClientSession() as s, s.get(url) as r:
             if 200 <= r.status_code < 300:
                 content = await r.read()
             else:
                 return await ctx.send("Invalid Response code: {}".format(r.status_code))
-        await self.xeili.user.edit(avatar=content)
+        
+        try:
+            await self.xeili.user.edit(avatar=content)
+        except BaseException:  # I don't know the exact Exception type 
+            return await ctx.send("Avatar was too big or not an image!")
+            
         await ctx.send("Successfully updated avatar!")
 
     @commands.group(name="blacklist", invoke_without_subcommand=True)
