@@ -36,8 +36,9 @@ async def get_entry(song, opts, loop):
 
 
 class OverlaySource(discord.AudioSource):
-    def __init__(self, source, overlay, *, vc):
+    def __init__(self, source, overlay, player, *, vc):
         self.source = source
+        self.player = player
         self.overlay = overlay
         self._overlay_source = discord.FFmpegPCMAudio(overlay)
         self.vc = vc
@@ -49,6 +50,7 @@ class OverlaySource(discord.AudioSource):
         overlay_data = self._overlay_source.read()
 
         if not source_data:
+            self.player.source = self._overlay_source
             self.vc.source = self._overlay_source
             self.cleanup()
             return overlay_data
@@ -84,6 +86,8 @@ class Player:
     async def queue(self, song, requester=None):
         entry = await get_entry(song, self.opts, self.vc.loop)
         entry["requester"] = requester
+        if entry["duration"] is None:
+            return await self.chan.send("Song has no duration, not queueing!")
         self._queue.append(entry)
         await self.chan.send('Added {} to the queue!'.format(entry['title']))
 
@@ -99,18 +103,19 @@ class Player:
         self.current_song = next
 
         if self.source is not None:
-            self.source = OverlaySource(self.source, dl_url, vc=self.vc)
+            self.source = OverlaySource(self.source, dl_url, self, vc=self.vc)
             self.vc.source = self.source
         else:
             source = discord.FFmpegPCMAudio(dl_url)
             self.source = source
-            self.vc.play(source, after=music_after)
+            self.vc.play(source, after=self.stop)
 
     def start(self):
         self._stop = False
         self._task = self.vc.loop.create_task(self.process_queue())
 
-    def stop(self):
+    def stop(self, e=None):
+        print(e)
         self._stop = True
         self._task.cancel()
         self.vc.stop()
@@ -137,7 +142,7 @@ class Player:
             now = time.time()
             time_left = self.current_song['duration'] - (now-self._start_time)
             self.percentage = 1 - (time_left / self.current_song['duration'])
-            if time_left <= 10:
+            if time_left <= 5:
                 if queue_next is False:
                     continue
                 queue_next = False
@@ -153,11 +158,11 @@ class Player:
                 else:
                     await self.chan.send("Queue empty, stopping...")
                     await asyncio.sleep(time_left)
-                    return self.stop()
 
                 for _ in range(round(time_left)-1):
                     self.source.vol_change_step()
-                    await asyncio.sleep(1)
+                    self.source.vol_change_step()
+                    await asyncio.sleep(0.5)
 
             else:
                 queue_next = True

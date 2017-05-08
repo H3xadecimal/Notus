@@ -51,7 +51,8 @@ class core:
                 self.settings['modules'].remove(module_name)
                 await ctx.send('Input accepted, Module unloaded.')
             else:
-                await ctx.send('Ignoring Input, Module not loaded or not found.')
+                await ctx.send(
+                        'Ignoring Input, Module not loaded or not found.')
         if argument == '--reload':
             if module_name in list(self.xeili.extensions):
                 plugin = importlib.import_module(module_name)
@@ -60,31 +61,34 @@ class core:
                 self.xeili.load_extension(plugin.__name__)
                 await ctx.send('Input accepted, Module reloaded.')
             else:
-                await ctx.send('Ignoring Input, Specified Module is not loaded.')
+                await ctx.send(
+                        'Ignoring Input, Specified Module is not loaded.')
         if argument not in argumentlist:
-            await ctx.send('Invalid argument, To see all arguments please do `xei arguments`')
+            await ctx.send(
+                    "Invalid argument, To see all arguments"
+                    " please do `xei arguments`")
 
     @commands.command()
     async def arguments(self, ctx):
         """Lists all arguments."""
-        await ctx.send("Arguments for Fragments Include: `--load, --unload & --reload`.")
+        await ctx.send(
+            "Arguments for Fragments Include: `--load, --unload & --reload`.")
 
     @commands.command(aliases=['debug'])
     @confirm.instance_owner()
     async def eval(self, ctx, *, code: str):
-        message = ctx.message
-        author = ctx.message.author
-        channel = ctx.message.channel
-        guild = ctx.message.guild
-        ctx = ctx
-        bot = self.xeili
-        client = self.xeili
+        env = {
+            "message": ctx.message,
+            "author": ctx.message.author,
+            "channel": ctx.message.channel,
+            "guild": ctx.message.guild,
+            "ctx": ctx,
+            "xeili": self.xeili,
+        }
 
-        output = eval(code)
+        output = eval(code, env)
         if inspect.isawaitable(output):
             output = await output
-        else:
-            pass
 
         await ctx.send('```py\n{0}\n```'.format(output))
 
@@ -94,6 +98,7 @@ class core:
         """Shuts down the bot.... Duh."""
         await ctx.send("Logging out...")
         await self.xeili.logout()
+
 
 def setup(xeili):
     xeili.add_cog(core(xeili))

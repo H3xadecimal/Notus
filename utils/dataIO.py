@@ -8,7 +8,8 @@ class RedisDict(redis_collections.Dict):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.die = False
-        self.thread = threading.Thread(target=self.update_loop, daemon=True, name=kwargs['key'])
+        self.thread = threading.Thread(target=self.update_loop,
+                                       daemon=True, name=kwargs['key'])
         self.thread.start()
         self.prev = None
 
@@ -31,4 +32,5 @@ class dataIO:
 
     @staticmethod
     def load_json(filename):
-        return RedisDict(key=filename, redis=__main__.redis_conn, writeback=True)
+        return RedisDict(key=filename, redis=__main__.redis_conn,
+                         writeback=True)
