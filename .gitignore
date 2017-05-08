@@ -3,3 +3,4 @@ pm2.json
 .sync/*
 logs/*
 */__pycache__/*
+*.rdb
