@@ -48,7 +48,6 @@ class Xeili(commands.Bot):
         self.send_command_help = send_cmd_help
         self.settings = dataIO.load_json('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
-        self.lookups = Lookups(self)
 
     async def blacklist_check(self):
         if 'blacklist' not in self.settings:
