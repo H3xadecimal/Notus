@@ -7,11 +7,11 @@ from utils.dataIO import dataIO
 
 
 class core:
-    def __init__(self, xeili):
-        self.xeili = xeili
-        self.firmware = "Xeili Compact 0.0.2 (Original Firmware)"
+    def __init__(self, amethyst):
+        self.amethyst = amethyst
+        self.firmware = "Stock Firmware: Compact 0.3"
         self.settings = dataIO.load_json('settings')
-        self.post_task = self.xeili.loop.create_task(self.post())
+        self.post_task = self.amethyst.loop.create_task(self.post())
 
     def __unload(self):
         self.post_task.cancel()
@@ -21,9 +21,9 @@ class core:
             self.settings['modules'] = []
         else:
             for module in self.settings['modules']:
-                if module not in list(self.xeili.extensions):
+                if module not in list(self.amethyst.extensions):
                     try:
-                        self.xeili.load_extension(module)
+                        self.amethyst.load_extension(module)
                     except:
                         self.settings['modules'].remove(module)
                         print("A module blew up... Idk which tho.")
@@ -35,44 +35,46 @@ class core:
         module_name = 'modules.{0}'.format(name)
         argumentlist = ["--load", "--unload", "--reload", None]
         if argument == '--load' or None:
-            if module_name not in list(self.xeili.extensions):
+            if module_name not in list(self.amethyst.extensions):
                 plugin = importlib.import_module(module_name)
                 importlib.reload(plugin)
-                self.xeili.load_extension(plugin.__name__)
+                self.amethyst.load_extension(plugin.__name__)
                 self.settings['modules'].append(module_name)
-                await ctx.send('Input accepted, Module loaded.')
+                await ctx.send('Module loaded.')
             else:
-                await ctx.send('Ignoring Input, Module already loaded.')
+                await ctx.send('The module you are trying to load is already loaded.\n'
+                    'Please use the `--reload` argument instead.')
         if argument == '--unload':
-            if module_name in list(self.xeili.extensions):
+            if module_name in list(self.amethyst.extensions):
                 plugin = importlib.import_module(module_name)
                 importlib.reload(plugin)
-                self.xeili.unload_extension(plugin.__name__)
+                self.amethyst.unload_extension(plugin.__name__)
                 self.settings['modules'].remove(module_name)
-                await ctx.send('Input accepted, Module unloaded.')
+                await ctx.send('Module unloaded.')
             else:
                 await ctx.send(
-                        'Ignoring Input, Module not loaded or not found.')
+                        'The module you are trying to unload could not be found or is not loaded.')
         if argument == '--reload':
-            if module_name in list(self.xeili.extensions):
+            if module_name in list(self.amethyst.extensions):
                 plugin = importlib.import_module(module_name)
                 importlib.reload(plugin)
-                self.xeili.unload_extension(plugin.__name__)
-                self.xeili.load_extension(plugin.__name__)
-                await ctx.send('Input accepted, Module reloaded.')
+                self.amethyst.unload_extension(plugin.__name__)
+                self.amethyst.load_extension(plugin.__name__)
+                await ctx.send('Module reloaded.')
             else:
                 await ctx.send(
-                        'Ignoring Input, Specified Module is not loaded.')
+                        'The module you are trying to reload is not loaded.\n'
+                        'Please try the `--reload` argument.')
         if argument not in argumentlist:
             await ctx.send(
-                    "Invalid argument, To see all arguments"
-                    " please do `xei arguments`")
+                    "The argument you specified is invalid.\n"
+                    "Please check the available arguments using `[prefix]arguments`.")
 
     @commands.command()
     async def arguments(self, ctx):
         """Lists all arguments."""
         await ctx.send(
-            "Arguments for Fragments Include: `--load, --unload & --reload`.")
+            "Arguments for Modules include: `--load, --unload & --reload`.")
 
     @commands.command(aliases=['debug'])
     @confirm.instance_owner()
@@ -83,7 +85,8 @@ class core:
             "channel": ctx.message.channel,
             "guild": ctx.message.guild,
             "ctx": ctx,
-            "xeili": self.xeili,
+            "discord": discord,
+            "amethyst": self.amethyst,
         }
 
         output = eval(code, env)
@@ -97,8 +100,8 @@ class core:
     async def shutdown(self, ctx):
         """Shuts down the bot.... Duh."""
         await ctx.send("Logging out...")
-        await self.xeili.logout()
+        await self.amethyst.logout()
 
 
-def setup(xeili):
-    xeili.add_cog(core(xeili))
+def setup(amethyst):
+    amethyst.add_cog(core(amethyst))

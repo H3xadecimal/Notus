@@ -9,12 +9,12 @@ import json
 with open("config.json") as f:
     config = json.load(f)
 
-redis_host = config.get('XEILI_REDIS_HOST') or 'localhost'
-redis_pass = config.get('XEILI_REDIS_PASSWORD')
-redis_port = int(config.get('XEILI_REDIS_PORT') or 6379)
-redis_db = int(config.get('XEILI_REDIS_DB') or 0)
-token = config.get('XEILI_TOKEN')
-prefix = config.get('XEILI_PREFIX')
+redis_host = config.get('AMETHYST_REDIS_HOST') or 'localhost'
+redis_pass = config.get('AMETHYST_REDIS_PASSWORD')
+redis_port = int(config.get('AMETHYST_REDIS_PORT') or 6379)
+redis_db = int(config.get('AMETHYST_REDIS_DB') or 0)
+token = config.get('AMETHYST_TOKEN')
+prefix = config.get('AMETHYST_PREFIX')
 
 # CMD-L Arguments
 parser = argparse.ArgumentParser()
@@ -40,7 +40,7 @@ except:
     exit(2)
 
 
-class Xeili(commands.Bot):
+class Amethyst(commands.Bot):
     def __init__(self, command_prefix, args, redis, **options):
         super().__init__(command_prefix, **options)
         self.args = args
@@ -57,11 +57,11 @@ class Xeili(commands.Bot):
 
     async def on_ready(self):
         self.redis.set('__info__',
-                       'This database is being used by the Xeili Framework.')
+                       'This database is being used by the Amethyst Framework.')
         print('Ready.')
         print(self.user.name)
 
-        self.load_extension('modules.compact')
+        self.load_extension('modules.core')
 
     async def on_command_error(self, exception, context):
         print(exception)
@@ -99,5 +99,5 @@ async def send_cmd_help(ctx):
         await ctx.send(page)
 
 
-xeili = Xeili(prefix, args, redis_conn)
-xeili.run(token)
+amethyst = Amethyst(prefix, args, redis_conn)
+amethyst.run(token)

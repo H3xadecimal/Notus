@@ -169,8 +169,8 @@ class Player:
 
 
 class music:
-    def __init__(self, xeili):
-        self.xeili = xeili
+    def __init__(self, amethyst):
+        self.amethyst = amethyst
         self.players = {}
         self.queues = {}
 
@@ -220,5 +220,5 @@ class music:
         await ctx.send(embed=e)
 
 
-def setup(xeili):
-    xeili.add_cog(music(xeili))
+def setup(amethyst):
+    amethyst.add_cog(music(amethyst))

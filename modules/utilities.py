@@ -8,10 +8,10 @@ from utils.dataIO import dataIO
 
 
 class utilities:
-    def __init__(self, xeili):
-        self.xeili = xeili
+    def __init__(self, amethyst):
+        self.amethyst = amethyst
         self.settings = dataIO.load_json('settings')
-        self.database_checks = self.xeili.loop.create_task(self.db_check())
+        self.database_checks = self.amethyst.loop.create_task(self.db_check())
 
     def __unload(self):
         self.database_checks.cancel()
@@ -29,7 +29,7 @@ class utilities:
     @confirm.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
-        await self.xeili.send_command_help(ctx)
+        await self.amethyst.send_command_help(ctx)
 
     @utils_set.command(name="nickname")
     async def utils_set_nickname(self, ctx, *, name: str=None):
@@ -49,17 +49,17 @@ class utilities:
     async def utils_set_game(self, ctx, *, game: str=None):
         """Sets Bot's playing status."""
         if game is not None:
-            await self.xeili.change_presence(game=discord.Game(name=game))
+            await self.amethyst.change_presence(game=discord.Game(name=game))
             await ctx.send("Done.")
         else:
-            await self.xeili.change_presence(game=None)
+            await self.amethyst.change_presence(game=None)
             await ctx.send("Done.")
 
     @utils_set.command(name="status")
     async def utils_set_status(self, ctx, status: str):
         """Sets bot presence."""
         status = getattr(discord.Status, status, discord.Status.online)
-        await self.xeili.change_presence(status=status)
+        await self.amethyst.change_presence(status=status)
         await ctx.send("Changed status!")
 
     @utils_set.command(name="owner")
@@ -92,7 +92,7 @@ class utilities:
                                       .format(r.status_code))
 
         try:
-            await self.xeili.user.edit(avatar=content)
+            await self.amethyst.user.edit(avatar=content)
         except BaseException:  # I don't know the exact Exception type
             return await ctx.send("Avatar was too big or not an image!")
 
@@ -102,7 +102,7 @@ class utilities:
     @confirm.instance_owner()
     async def blacklist_commands(self, ctx):
         """Prevents a user from using the bot globally."""
-        await self.xeili.send_command_help(ctx)
+        await self.amethyst.send_command_help(ctx)
 
     @blacklist_commands.command(name="add")
     async def add_blacklist(self, ctx, user: discord.Member):
@@ -129,7 +129,7 @@ class utilities:
     async def cleanup(self, ctx):
         """Cleans up the bot's messages."""
         msgs = await ctx.message.channel.history(limit=100).flatten()
-        msgs = [msg for msg in msgs if msg.author.id == self.xeili.user.id]
+        msgs = [msg for msg in msgs if msg.author.id == self.amethyst.user.id]
 
         if (len(msgs) > 0 and
                 ctx.me.permissions_in(ctx.channel).manage_messages):
@@ -145,5 +145,5 @@ class utilities:
         await msg.delete()
 
 
-def setup(xeili):
-    xeili.add_cog(utilities(xeili))
+def setup(amethyst):
+    amethyst.add_cog(utilities(amethyst))
