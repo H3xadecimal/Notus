@@ -4,8 +4,8 @@ class BadResponseException(Exception):
     pass
 
 class Lookups:
-    def __init__(self, xeili):
-        self.xeili = xeili
+    def __init__(self, amethyst):
+        self.amethyst = amethyst
 
     async def __prompt__(self, ctx, what, what_list, type):
         if type == 'members':
@@ -21,14 +21,14 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.xeili.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
                     await ctx.send('Choice index out of range (0 or larger than {}).'.format(len(format_list) + 1))
                     return BadResponseException()
                 elif isinstance(ctx.message.channel, discord.DMChannel):
-                    choice = [u for u in self.xeili.users if u.id == what_list[choice - 1][2]][0]
+                    choice = [u for u in self.amethyst.users if u.id == what_list[choice - 1][2]][0]
                 else:
                     choice = [m for m in ctx.guild.members if m.id == what_list[choice - 1][2]][0]
 
@@ -53,7 +53,7 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.xeili.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
@@ -83,14 +83,14 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.xeili.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
                     await ctx.send('Choice index out of range (0 or larger than {}).'.format(len(format_list) + 1))
                     return BadResponseException()
                 else:
-                    choice = [g for g in self.xeili.guilds if g.id == what_list[choice - 1][1]][0]
+                    choice = [g for g in self.amethyst.guilds if g.id == what_list[choice - 1][1]][0]
 
                 await delet.delete()
                 return choice
@@ -113,7 +113,7 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.xeili.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
@@ -140,7 +140,7 @@ class Lookups:
             member = ctx.message.mentions[0]
         else:
             if isinstance(ctx.message.channel, discord.DMChannel):
-                members = [u for u in self.xeili.users if who.lower() in u.name.lower()]
+                members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
 
                 if len(members) > 1:
                     member = await self.__prompt__(ctx, who, members, 'members')
@@ -206,7 +206,7 @@ class Lookups:
 
     async def guild_lookup(self, ctx, what, not_found_msg=True):
         guild = None
-        guilds = [g for g in self.xeili.guilds if what.lower() in g.name.lower()]
+        guilds = [g for g in self.amethyst.guilds if what.lower() in g.name.lower()]
 
         if len(guilds) > 1:
             guild = await self.__prompt__(ctx, what, guilds, 'guilds')
