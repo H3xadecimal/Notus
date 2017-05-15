@@ -1,6 +1,8 @@
 from discord.ext import commands
+from discord.ext.commands import errors as commands_errors
 from utils.dataIO import dataIO
 from utils.lookups import Lookups
+import discord
 import traceback
 import redis
 import argparse
@@ -64,12 +66,9 @@ class Amethyst(commands.Bot):
         self.load_extension('modules.core')
 
     async def on_command_error(self, exception, context):
-        print(exception)
-        if isinstance(exception, commands.errors.CommandNotFound):
-            pass
-        if isinstance(exception, commands.errors.MissingRequiredArgument):
-            await send_cmd_help(context)
-        elif isinstance(exception, commands.errors.CommandInvokeError):
+        if isinstance(exception, commands_errors.MissingRequiredArgument):
+            await self.send_command_help()
+        elif isinstance(exception, commands_errors.CommandInvokeError):
             exception = exception.original
             _traceback = traceback.format_tb(exception.__traceback__)
             _traceback = ''.join(_traceback)
@@ -79,7 +78,7 @@ class Amethyst(commands.Bot):
                         context.command.qualified_name,
                         _traceback, exception)
             await context.send(error)
-        elif isinstance(exception, commands.errors.CommandNotFound):
+        elif isinstance(exception, commands_errors.CommandNotFound):
             pass
 
     async def on_message(self, message):
@@ -91,8 +90,7 @@ class Amethyst(commands.Bot):
 
 async def send_cmd_help(ctx):
     if ctx.invoked_subcommand:
-        _help = await ctx.bot.formatter.format_help_for(
-                ctx, ctx.invoked_subcommand)
+        _help = await ctx.bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
     else:
         _help = await ctx.bot.formatter.format_help_for(ctx, ctx.command)
     for page in _help:
