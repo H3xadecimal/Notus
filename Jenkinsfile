@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Resolve dependencies') {
             steps {
-                sh 'git clone https://github.com/Rapptz/discord.py@rewrite'
+                sh 'git clone https://github.com/Rapptz/discord.py --branch rewrite'
                 sh 'mv discord.py/discord discord'
             }
         }
@@ -14,10 +14,10 @@ pipeline {
                 sh 'python3 -m compileall .'
             }
         }
-        stage('Cleanup') {
-            steps {
-                cleanWs()
-            }
+    }
+    post {
+        always {
+            deleteDir()
         }
     }
 }
