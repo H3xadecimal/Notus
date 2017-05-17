@@ -64,7 +64,7 @@ class core:
             else:
                 await ctx.send(
                         'The module you are trying to reload is not loaded.\n'
-                        'Please try the `--reload` argument.')
+                        'Please try the `--load` argument.')
         if argument not in argumentlist:
             await ctx.send(
                     "The argument you specified is invalid.\n"
