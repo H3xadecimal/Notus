@@ -28,7 +28,7 @@ class utilities:
         """Pong."""
         await ctx.send("Pong.")
 
-    @commands.group(name="set", invoke_without_subcommand=True)
+    @commands.group(name="set", invoke_without_command=True)
     @confirm.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
@@ -104,7 +104,7 @@ class utilities:
 
         await ctx.send("Successfully updated avatar!")
 
-    @commands.group(name="blacklist", invoke_without_subcommand=True)
+    @commands.group(name="blacklist", invoke_without_command=True)
     @confirm.instance_owner()
     async def blacklist_commands(self, ctx):
         """Prevents a user from using the bot globally."""
