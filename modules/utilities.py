@@ -85,7 +85,7 @@ class utilities:
             return await ctx.send("Url or Attachment is not an Image!")
 
         async with aiohttp.ClientSession() as s, s.get(url) as r:
-            if 200 <= r.status_code < 300:
+            if 200 <= r.status < 300:
                 content = await r.read()
             else:
                 return await ctx.send("Invalid Response code: {}"
