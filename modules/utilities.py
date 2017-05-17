@@ -11,14 +11,17 @@ class utilities:
     def __init__(self, amethyst):
         self.amethyst = amethyst
         self.settings = dataIO.load_json('settings')
-        self.database_checks = self.amethyst.loop.create_task(self.db_check())
+        self.owners_checks = self.amethyst.loop.create_task(self.configure_owner())
 
     def __unload(self):
-        self.database_checks.cancel()
+        self.owners_checks.cancel()
 
-    async def db_check(self):
+    async def configure_owner(self):
         if 'owners' not in self.settings:
             self.settings['owners'] = []
+        if self.amethyst.owner not in self.settings['owners']:
+            self.settings['owners'].append(self.amethyst.owner)
+        self.amethyst.owners = self.settings['owners']
 
     @commands.command()
     async def ping(self, ctx):
@@ -63,10 +66,13 @@ class utilities:
         await ctx.send("Changed status!")
 
     @utils_set.command(name="owner")
-    async def utils_set_owner(self, ctx, user: discord.Member):
+    async def utils_set_owner(self, ctx, *owners: discord.Member):
         """Sets other owners."""
-        self.settings['owners'].append(user.id)
-        await ctx.send("User set as owner.")
+        self.settings['owners'] = [str(x.id) for x in list(owners)]
+        if len(list(owners)) == 1:
+            await ctx.send('Owner set.')
+        else:
+            await ctx.send('Owners set.')
 
     @utils_set.command(name="avatar")
     async def utils_set_avatar(self, ctx, url: str=None):

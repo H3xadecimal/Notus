@@ -1,5 +1,6 @@
 from discord.ext import commands
 from discord.ext.commands import errors as commands_errors
+from discord import utils as dutils
 from utils.dataIO import dataIO
 import traceback
 import redis
@@ -45,6 +46,7 @@ class Amethyst(commands.Bot):
         super().__init__(command_prefix, **options)
         self.args = args
         self.redis = redis
+        self.owner = None
         self.send_command_help = send_cmd_help
         self.settings = dataIO.load_json('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
@@ -58,7 +60,11 @@ class Amethyst(commands.Bot):
     async def on_ready(self):
         self.redis.set('__info__',
                        'This database is being used by the Amethyst Framework.')
+        app_info = await self.application_info()
+        self.invite_url = dutils.oauth_url(app_info.id)
+        self.owner = str(app_info.owner.id)
         print('Ready.')
+        print(self.invite_url)
         print(self.user.name)
 
         self.load_extension('modules.core')
