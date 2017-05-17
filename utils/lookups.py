@@ -1,7 +1,10 @@
-import discord, asyncio, re
+import discord
+import asyncio
+
 
 class BadResponseException(Exception):
     pass
+
 
 class Lookups:
     def __init__(self, amethyst):
@@ -21,7 +24,9 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message',
+                                                   check=lambda m: m.author.id == ctx.message.author.id,
+                                                   timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
@@ -53,7 +58,9 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message',
+                                                   check=lambda m: m.author.id == ctx.message.author.id,
+                                                   timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
@@ -83,7 +90,9 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message',
+                                                   check=lambda m: m.author.id == ctx.message.author.id,
+                                                   timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
@@ -113,7 +122,9 @@ class Lookups:
 
             delet = await ctx.send(msg)
             try:
-                msg = await self.amethyst.wait_for('message', check=lambda m: m.author.id == ctx.message.author.id, timeout=15)
+                msg = await self.amethyst.wait_for('message',
+                                                   check=lambda m: m.author.id == ctx.message.author.id,
+                                                   timeout=15)
                 choice = int(msg.content)
 
                 if choice == 0 or choice > len(format_list):
@@ -150,10 +161,11 @@ class Lookups:
                     if not_found_msg:
                         await ctx.send('User not found.')
                         member = BadResponseException()
-                
+
                 return member
             else:
-                members = [m for m in ctx.guild.members if who.lower() in m.name.lower() or (m.nick and who.lower() in m.nick.lower())]
+                members = [m for m in ctx.guild.members if who.lower() in m.name.lower() or
+                           (m.nick and who.lower() in m.nick.lower())]
 
                 if len(members) > 1:
                     member = await self.__prompt__(ctx, who, members, 'members')
@@ -165,7 +177,7 @@ class Lookups:
                         member = BadResponseException()
 
                 return member
-        
+
     async def channel_lookup(self, ctx, what, not_found_msg=True):
         if isinstance(ctx.message.channel, discord.DMChannel):
             await ctx.send('Channels cannot be looked up in DMs.')
@@ -182,9 +194,9 @@ class Lookups:
                 if not_found_msg:
                     await ctx.send('Channel not found.')
                     channel = BadResponseException()
-            
+
             return channel
-    
+
     async def role_lookup(self, ctx, what, not_found_msg=True):
         if isinstance(ctx.message.channel, discord.DMChannel):
             await ctx.send('Roles cannot be looked up in DMs.')
@@ -201,7 +213,7 @@ class Lookups:
                 if not_found_msg:
                     await ctx.send('Role not found.')
                     role = BadResponseException()
-            
+
             return role
 
     async def guild_lookup(self, ctx, what, not_found_msg=True):
@@ -216,5 +228,5 @@ class Lookups:
             if not_found_msg:
                 await ctx.send('Server not found.')
                 guild = BadResponseException()
-            
+
         return guild
