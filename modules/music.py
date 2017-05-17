@@ -11,6 +11,7 @@ from discord.ext import commands
 def music_after(e):
     print(e)
 
+
 async def get_entry(song, opts, loop):
     with ytdl.YoutubeDL(opts) as dl:
         f = functools.partial(dl.extract_info, song, download=False)

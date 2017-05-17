@@ -43,7 +43,7 @@ class core:
                 await ctx.send('Module loaded.')
             else:
                 await ctx.send('The module you are trying to load is already loaded.\n'
-                    'Please use the `--reload` argument instead.')
+                               'Please use the `--reload` argument instead.')
         if argument == '--unload':
             if module_name in list(self.amethyst.extensions):
                 plugin = importlib.import_module(module_name)

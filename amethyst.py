@@ -1,8 +1,6 @@
 from discord.ext import commands
 from discord.ext.commands import errors as commands_errors
 from utils.dataIO import dataIO
-from utils.lookups import Lookups
-import discord
 import traceback
 import redis
 import argparse
@@ -87,6 +85,7 @@ class Amethyst(commands.Bot):
         if message.author.id in self.settings['blacklist']:
             return
         await self.process_commands(message)
+
 
 async def send_cmd_help(ctx):
     if ctx.invoked_subcommand:
