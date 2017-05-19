@@ -58,8 +58,9 @@ class Amethyst(commands.Bot):
             pass
 
     async def on_ready(self):
-        self.redis.set('__info__',
-                       'This database is being used by the Amethyst Framework.')
+        self.redis.set(
+            '__info__',
+            'This database is being used by the Amethyst Framework.')
         app_info = await self.application_info()
         self.invite_url = dutils.oauth_url(app_info.id)
         self.owner = str(app_info.owner.id)
@@ -95,7 +96,8 @@ class Amethyst(commands.Bot):
 
 async def send_cmd_help(ctx):
     if ctx.invoked_subcommand:
-        _help = await ctx.bot.formatter.format_help_for(ctx, ctx.invoked_subcommand)
+        _help = await ctx.bot.formatter.format_help_for(ctx,
+                                                        ctx.invoked_subcommand)
     else:
         _help = await ctx.bot.formatter.format_help_for(ctx, ctx.command)
     for page in _help:
