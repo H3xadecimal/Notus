@@ -3,13 +3,13 @@ import audioop
 import functools
 import time
 
+import romkan
 import discord
 import youtube_dl as ytdl
+from utils.tts import MaryTTS
 from discord.ext import commands
 
-
-def music_after(e):
-    print(e)
+from . import music_converters as conv
 
 
 async def get_entry(song, opts, loop):
@@ -56,6 +56,12 @@ class OverlaySource(discord.AudioSource):
             self.cleanup()
             return overlay_data
 
+        if not overlay_data:
+            self.player.source = self.source
+            self.vc.source = self.source
+            self._overlay_source.cleanup()
+            return source_data
+
         source_data = audioop.mul(source_data, 2, self.vol*(1-self.vol_step))
         overlay_data = audioop.mul(overlay_data, 2, self.vol*self.vol_step)
 
@@ -66,7 +72,27 @@ class OverlaySource(discord.AudioSource):
 
     def vol_change_step(self):
         if self.vol_step < 1:
-            self.vol_step += 0.1
+            self.vol_step += 0.05
+
+
+class TTSOverlay(OverlaySource):
+    def read(self):
+        source_data = self.source.read()
+        overlay_data = self._overlay_source.read()
+
+        if not overlay_data:
+            self.player.source = self.source
+            self.vc.source = self.source
+            self.cleanup()
+            return source_data
+
+        source_data = audioop.mul(source_data, 2, 0.2)
+        overlay_data = audioop.mul(overlay_data, 2, 4)
+
+        return audioop.add(source_data, overlay_data, 2)
+
+    def cleanup(self):
+        self._overlay_source.cleanup()
 
 
 class Player:
@@ -78,6 +104,8 @@ class Player:
         'default_search': 'auto'
     }
 
+    tts = MaryTTS(enabled=True)
+
     def __init__(self, voice_client, channel, queue: str=None):
         self.vc = voice_client
         self.chan = channel
@@ -85,6 +113,27 @@ class Player:
         self.source = None
 
     async def queue(self, song, requester=None):
+        if "youtube.com/playlist" in song:
+            songs = await conv.youtube_playlist(song, requester,
+                                                self.vc.loop)
+            self._queue += songs
+            return await self.chan.send("Added {} items to the queue!"
+                                        .format(len(songs)))
+
+        if all(x in song for x in ["soundcloud.com", "/sets/"]):
+            songs = await conv.soundcloud_playlist(song, requester,
+                                                   self.vc.loop)
+            self._queue += songs
+            return await self.chan.send("Added {} items to the queue!"
+                                        .format(len(songs)))
+
+        if "bandcamp.com/album" in song:
+            songs = await conv.bandcamp_playlist(song, requester,
+                                                 self.vc.loop)
+            self._queue += songs
+            return await self.chan.send("Added {} items to the queue!"
+                                        .format(len(songs)))
+
         entry = await get_entry(song, self.opts, self.vc.loop)
         entry["requester"] = requester
         if entry["duration"] is None:
@@ -95,7 +144,7 @@ class Player:
     async def download_next(self):
         next = self._queue.pop(0)
 
-        await self.chan.send('Next up: {}'.format(next['title']))
+        await self.chan.send('Now Playing: {}'.format(next['title']))
         entry = await get_entry(next['url'], self.opts, self.vc.loop)
         dl_url = entry['raw_url']
 
@@ -106,22 +155,57 @@ class Player:
         if self.source is not None:
             self.source = OverlaySource(self.source, dl_url, self, vc=self.vc)
             self.vc.source = self.source
+
+            source = "song_cache/{}.wav".format(self.chan.id)
+            can_pronounce = (
+                "abcdefghijklmnopqrstuvwxyz"
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                "0123456789 "
+            )
+            replaces = {
+                "&": "and",
+                " - ": ", ",
+                "ft.": "featuring",
+                "official audio": "",
+                "official video": "",
+                "official music video": "",
+                "free download": "",
+                "audio": ""
+            }
+
+            t = romkan.to_roma(next['title']).lower()
+            for c, r in replaces.items():
+                t = t.replace(c, r)
+            t = "".join(c for c in t if c in can_pronounce)
+            data = await self.tts._say('Now Playing: {}'.format(t),
+                                       voice="dfki-prudence")
+            with open(source, "wb") as f:
+                f.write(data)
+            self.source = TTSOverlay(self.source, source, self, vc=self.vc)
+            self.vc.source = self.source
         else:
-            source = discord.FFmpegPCMAudio(dl_url)
+            source = discord.PCMVolumeTransformer(
+                discord.FFmpegPCMAudio(dl_url),
+                volume=0.5)
             self.source = source
-            self.vc.play(source, after=self.stop)
+            self.vc.play(source, after=self.skip)
 
     def start(self):
         self._stop = False
+        self._skip = False
         self._task = self.vc.loop.create_task(self.process_queue())
 
-    def stop(self, e=None):
-        print(e)
+    async def stop(self):
         self._stop = True
         self._task.cancel()
+        await self.vc.disconnect()
         self.vc.stop()
-        asyncio.run_coroutine_threadsafe(self.vc.disconnect(), self.vc.loop)
         self._queue.clear()
+
+    def skip(self, e=None):
+        if e is not None:
+            print(e)
+        self._skip = True
 
     async def process_queue(self):
         await self.download_next()
@@ -143,9 +227,13 @@ class Player:
             now = time.time()
             time_left = self.current_song['duration'] - (now-self._start_time)
             self.percentage = 1 - (time_left / self.current_song['duration'])
-            if time_left <= 5:
-                if queue_next is False:
+            if time_left <= 10 or self._skip:
+                if queue_next is False and not self._skip:
                     continue
+
+                if self._skip:
+                    self._skip = False
+
                 queue_next = False
                 # Less than 10 seconds left until
                 # the song ends, start the next song.
@@ -155,15 +243,29 @@ class Player:
                     # This data will mix with the data in the previous thread,
                     # Not sure if this will mess up but we'll see how it goes
                     await self.download_next()
+                    now = time.time()
+                    time_left = (self.current_song['duration'] -
+                                 (now-self._start_time))
+                    for _ in range(round(time_left)*2):
+                        try:
+                            self.source.vol_change_step()
+                            self.source.vol_change_step()
+                            await asyncio.sleep(0.5)
+                        except:
+                            break
 
                 else:
-                    await self.chan.send("Queue empty, stopping...")
                     await asyncio.sleep(time_left)
-
-                for _ in range(round(time_left)-1):
-                    self.source.vol_change_step()
-                    self.source.vol_change_step()
-                    await asyncio.sleep(0.5)
+                    await self.chan.send("Queue empty, stopping...")
+                    data = await self.tts._say('Queue empty, stopping...',
+                                               voice="dfki-prudence")
+                    source = "song_cache/{}.wav".format(self.chan.id)
+                    with open(source, "wb") as f:
+                        f.write(data)
+                    self.source = TTSOverlay(self.source, source,
+                                             self, vc=self.vc)
+                    self.vc.source = self.source
+                    await self.stop()
 
             else:
                 queue_next = True
@@ -196,8 +298,9 @@ class music:
 
     @commands.command(name="disconnect")
     async def music_disconnect(self, ctx):
-        self.players[ctx.guild.id].stop()
-        await self.players[ctx.guild.id].vc.disconnect()
+        await self.players[ctx.guild.id].stop()
+        del self.players[ctx.guild.id]
+        del self.queues[ctx.guild.id]
 
     @commands.command(name="song")
     async def music_current_song(self, ctx):
