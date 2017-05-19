@@ -104,7 +104,11 @@ class Player:
         'default_search': 'auto'
     }
 
-    tts = MaryTTS(enabled=True)
+    try:
+        tts = MaryTTS(enabled=True)
+    except:
+        # Voice not installed
+        pass
 
     def __init__(self, voice_client, channel, queue: str=None):
         self.vc = voice_client
@@ -156,33 +160,36 @@ class Player:
             self.source = OverlaySource(self.source, dl_url, self, vc=self.vc)
             self.vc.source = self.source
 
-            source = "song_cache/{}.wav".format(self.chan.id)
-            can_pronounce = (
-                "abcdefghijklmnopqrstuvwxyz"
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                "0123456789 "
-            )
-            replaces = {
-                "&": "and",
-                " - ": ", ",
-                "ft.": "featuring",
-                "official audio": "",
-                "official video": "",
-                "official music video": "",
-                "free download": "",
-                "audio": ""
-            }
+            try:
+                source = "song_cache/{}.wav".format(self.chan.id)
+                can_pronounce = (
+                    "abcdefghijklmnopqrstuvwxyz"
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                    "0123456789 "
+                )
+                replaces = {
+                    "&": "and",
+                    " - ": ", ",
+                    "ft.": "featuring",
+                    "official audio": "",
+                    "official video": "",
+                    "official music video": "",
+                    "free download": "",
+                    "audio": ""
+                }
 
-            t = romkan.to_roma(next['title']).lower()
-            for c, r in replaces.items():
-                t = t.replace(c, r)
-            t = "".join(c for c in t if c in can_pronounce)
-            data = await self.tts._say('Now Playing: {}'.format(t),
-                                       voice="dfki-prudence")
-            with open(source, "wb") as f:
-                f.write(data)
-            self.source = TTSOverlay(self.source, source, self, vc=self.vc)
-            self.vc.source = self.source
+                t = romkan.to_roma(next['title']).lower()
+                for c, r in replaces.items():
+                    t = t.replace(c, r)
+                t = "".join(c for c in t if c in can_pronounce)
+                data = await self.tts._say('Now Playing: {}'.format(t),
+                                           voice="dfki-prudence")
+                with open(source, "wb") as f:
+                    f.write(data)
+                self.source = TTSOverlay(self.source, source, self, vc=self.vc)
+                self.vc.source = self.source
+            except:
+                pass
         else:
             source = discord.PCMVolumeTransformer(
                 discord.FFmpegPCMAudio(dl_url),
