@@ -12,9 +12,11 @@ class core:
         self.firmware = "Stock Firmware: Compact 0.3"
         self.settings = dataIO.load_json('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
+        self.owners_task = self.amethyst.loop.create_task(self.owners_configuration())
 
     def __unload(self):
         self.post_task.cancel()
+        self.owners_task.cancel()
 
     async def post(self):
         if 'modules' not in self.settings:
@@ -27,6 +29,13 @@ class core:
                     except:
                         self.settings['modules'].remove(module)
                         print("A module blew up... Idk which tho.")
+
+    async def owners_configuration(self):
+        if 'owners' not in self.settings:
+            self.settings['owners'] = []
+        if self.amethyst.owner not in self.settings['owners']:
+            self.settings['owners'].append(self.amethyst.owner)
+        self.amethyst.owners = self.settings['owners']
 
     @commands.command(aliases=['cog'])
     @confirm.instance_owner()
@@ -86,7 +95,7 @@ class core:
             "guild": ctx.message.guild,
             "ctx": ctx,
             "discord": discord,
-            "amethyst": self.amethyst,
+            "self": self.amethyst,
         }
 
         output = eval(code, env)

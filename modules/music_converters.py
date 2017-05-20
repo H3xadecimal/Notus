@@ -45,10 +45,12 @@ async def get_song_info(loop, url):
     except:
         return
 
+
 async def _get_playlist(id):
     async with aiohttp.ClientSession() as ses:
         async with ses.get(YT_PL_URL.format(id=id, key=YT_KEY)) as res:
             return await res.json()
+
 
 async def _get_playlist_page(id, page):
     async with aiohttp.ClientSession() as ses:
