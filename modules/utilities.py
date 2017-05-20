@@ -11,17 +11,6 @@ class utilities:
     def __init__(self, amethyst):
         self.amethyst = amethyst
         self.settings = dataIO.load_json('settings')
-        self.owners_checks = self.amethyst.loop.create_task(self.configure_owner())
-
-    def __unload(self):
-        self.owners_checks.cancel()
-
-    async def configure_owner(self):
-        if 'owners' not in self.settings:
-            self.settings['owners'] = []
-        if self.amethyst.owner not in self.settings['owners']:
-            self.settings['owners'].append(self.amethyst.owner)
-        self.amethyst.owners = self.settings['owners']
 
     @commands.command()
     async def ping(self, ctx):
