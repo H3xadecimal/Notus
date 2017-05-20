@@ -95,6 +95,124 @@ class TTSOverlay(OverlaySource):
         self._overlay_source.cleanup()
 
 
+class Queue:
+    def __init__(self, chunk_size=2, max_chunks=None, max_per_user=None):
+        self.size = chunk_size
+        self.max = max_chunks
+        self.user_max = max_per_user
+        self.items = []
+        self.current = []
+
+    @property
+    def queue(self):
+        r = self.current[:]
+        for group in self.items:
+            r += group
+
+        return r
+
+    def __len__(self):
+        return len(self.queue)
+
+    def __repr__(self):
+        return ("Queue(entries={1}, chunk_size={0.size}, "
+                "max_chunks={0.max}, per_user={0.user_max})").format(
+                        self, len(self.queue))
+
+    def show(self, source="title"):
+        res = []
+        for group in self.items:
+            g = []
+            for data in group:
+                g.append({source: data[source],
+                          "request_id": data["request_id"]})
+            res.append(g)
+        return res
+
+    def add(self, items):
+        for data in items:
+            self.append(data)
+
+    def append(self, data):
+        # === LOGIC ===
+        # Basically, the first thing is to find the index of the user's
+        # last song (since when they add something new, it should always be
+        # added after their other songs)
+        # This is achieved by iterating backwards through the current queue,
+        # stopping the first time something by that user is found
+        # Next, we iterate forward from that starting point.
+        # For each song, we put the user that added it into a set.
+        # We continue to move forward this way until we hit a user that
+        # is already in the set. We stop here and insert the item.
+
+        # For users A, B, and C, imagine starting queue ABCABCABCBBBBB
+
+        # User A tries to put something in the queue
+        # last A, start here
+        # ABCABCABCBBBBB
+        # B goes into the set
+        # C goes into the set
+        # B is already in the set, so the A gets added here
+        # ABCABCABCABBBBB
+
+        id = data["request_id"] = data["requester"].id
+
+        if not self.items:
+            self.items.append([data])
+            return
+
+        if len(self.items) == self.max:
+            raise Exception("Max queue chunks reached.")
+
+        if sum(1 for chunk in self.items
+               if (chunk[0]["request_id"] == id and
+                   len(chunk) == self.size)
+               ) == self.user_max:
+            raise Exception("User reached maximum amount of chunks")
+
+        for index, value in enumerate(reversed(self.items)):
+            if index == len(self.items)-1 or value[0]["request_id"] == id:
+                # we found the last item by us or
+                # we have no items in the queue
+
+                if value[0]["request_id"] == id and len(value) < self.size:
+                    # last item by us has a free space left
+                    value.append(data)
+                    return
+
+                # index to start from
+                # python is 0-indexed so subtract 1
+                start = len(self.items) - index - 1
+                found_ids = []
+
+                while True:
+                    if start == len(self.items):
+                        # No place left, put it at the end
+                        self.items.append([data])
+                        return
+
+                    id = self.items[start][0]["request_id"]
+
+                    if id in found_ids:
+                        # this id appears for the second time now
+                        # so insert here
+                        self.items.insert(start, [data])
+                        return
+
+                    found_ids.append(id)
+
+                    start += 1
+
+    def pop(self):
+        if not self.current:
+            self.current = self.items.pop(0)
+        return self.current.pop(0)
+
+    def clear(self):
+        self.items.clear()
+        self.current.clear()
+
+
 class Player:
     opts = {
         'format': 'bestaudio/best',
@@ -113,28 +231,28 @@ class Player:
     def __init__(self, voice_client, channel, queue: str=None):
         self.vc = voice_client
         self.chan = channel
-        self._queue = queue or []
+        self._queue = queue or Queue()
         self.source = None
 
     async def queue(self, song, requester=None):
         if "youtube.com/playlist" in song:
             songs = await conv.youtube_playlist(song, requester,
                                                 self.vc.loop)
-            self._queue += songs
+            self._queue.add(songs)
             return await self.chan.send("Added {} items to the queue!"
                                         .format(len(songs)))
 
         if all(x in song for x in ["soundcloud.com", "/sets/"]):
             songs = await conv.soundcloud_playlist(song, requester,
                                                    self.vc.loop)
-            self._queue += songs
+            self._queue.add(songs)
             return await self.chan.send("Added {} items to the queue!"
                                         .format(len(songs)))
 
         if "bandcamp.com/album" in song:
             songs = await conv.bandcamp_playlist(song, requester,
                                                  self.vc.loop)
-            self._queue += songs
+            self._queue.add(songs)
             return await self.chan.send("Added {} items to the queue!"
                                         .format(len(songs)))
 
@@ -146,7 +264,7 @@ class Player:
         await self.chan.send('Added {} to the queue!'.format(entry['title']))
 
     async def download_next(self):
-        next = self._queue.pop(0)
+        next = self._queue.pop()
 
         await self.chan.send('Now Playing: {}'.format(next['title']))
         entry = await get_entry(next['url'], self.opts, self.vc.loop)
@@ -204,8 +322,8 @@ class Player:
 
     async def stop(self):
         self._stop = True
-        self._task.cancel()
         await self.vc.disconnect()
+        self._task.cancel()
         self.vc.stop()
         self._queue.clear()
 
@@ -282,16 +400,13 @@ class music:
     def __init__(self, amethyst):
         self.amethyst = amethyst
         self.players = {}
-        self.queues = {}
 
     @commands.command(name='play')
     async def music_play(self, ctx, *, song: str):
         start = False
         if ctx.guild.id not in self.players:
             vc = await ctx.author.voice.channel.connect(reconnect=True)
-            self.queues[ctx.guild.id] = []
-            self.players[ctx.guild.id] = Player(vc, ctx.channel,
-                                                self.queues[ctx.guild.id])
+            self.players[ctx.guild.id] = Player(vc, ctx.channel)
             start = True
 
         await self.players[ctx.guild.id].queue(song, requester=ctx.author)
@@ -301,13 +416,13 @@ class music:
 
     @commands.command(name='queue')
     async def music_playlist(self, ctx):
-        await ctx.send('\n'.join(s['name'] for s in self.queues[ctx.guild.id]))
+        await ctx.send('\n'.join(s['title']
+                       for s in self.players[ctx.guild.id]._queue.queue))
 
     @commands.command(name="disconnect")
     async def music_disconnect(self, ctx):
         await self.players[ctx.guild.id].stop()
         del self.players[ctx.guild.id]
-        del self.queues[ctx.guild.id]
 
     @commands.command(name="song")
     async def music_current_song(self, ctx):
