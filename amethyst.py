@@ -70,9 +70,9 @@ class Amethyst(commands.Bot):
 
         self.load_extension('modules.core')
 
-    async def on_command_error(self, exception, context):
+    async def on_command_error(self, context, exception):
         if isinstance(exception, commands_errors.MissingRequiredArgument):
-            await self.send_command_help()
+            await self.send_command_help(context)
         elif isinstance(exception, commands_errors.CommandInvokeError):
             exception = exception.original
             _traceback = traceback.format_tb(exception.__traceback__)
