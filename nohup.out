@@ -1,0 +1,33 @@
+[s16le @ 0x5592e867ac80] Application provided invalid, non monotonically increasing dts to muxer in stream 0: 2216 >= 2191
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+[tls @ 0x56304bedae40] Error in the pull function.
+[aac @ 0x56304c148d80] decode_band_types: Input buffer exhausted before END element found
+Error while decoding stream #0:0: Invalid data found when processing input
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0x56304bed8560] stream 0, offset 0x35c07a: partial file
+https://r2---sn-5hnedn7e.googlevideo.com/videoplayback?key=yt6&mime=audio%2Fmp4&id=o-AKyZRDkvYmPh1Qw4N2v91PUdR36eIrGix6WUBMuwLmj9&ms=au&mt=1495406300&upn=L30JZnQIBtg&mv=m&pl=20&expire=1495427988&mm=31&ip=83.128.178.6&mn=sn-5hnedn7e&gir=yes&requiressl=yes&ei=NBciWfLgKYT91gKPrrP4BQ&keepalive=yes&source=youtube&initcwndbps=2942500&ipbits=0&sparams=clen%2Cdur%2Cei%2Cgir%2Cid%2Cinitcwndbps%2Cip%2Cipbits%2Citag%2Ckeepalive%2Clmt%2Cmime%2Cmm%2Cmn%2Cms%2Cmv%2Cpl%2Crequiressl%2Csource%2Cupn%2Cexpire&lmt=1475535885900670&itag=140&dur=224.049&clen=3559134&signature=7EAF24DA9802E37A09A50AC66724212091EB6A7C.CB56BEBD1FD757F5D38406E8A02DB383BB67E5D0&ratebypass=yes: Invalid data found when processing input
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+[tls @ 0x557ad7f7ae40] Error in the pull function.
+[matroska,webm @ 0x557ad7f78560] Read error
+[tls @ 0x557ad7f7ae40] The specified session has been invalidated for some reason.
+    Last message repeated 1 times
+Guessed Channel Layout for Input Stream #0.0 : mono
+[tls @ 0x563b0d944e60] Error in the pull function.
+[matroska,webm @ 0x563b0d942560] Read error
+[tls @ 0x563b0d944e60] The specified session has been invalidated for some reason.
+    Last message repeated 1 times
+Guessed Channel Layout for Input Stream #0.0 : mono
+WARNING: unable to extract uploader nickname
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+Guessed Channel Layout for Input Stream #0.0 : mono
+[tls @ 0x55af9f7efe40] Error in the pull function.
+[matroska,webm @ 0x55af9f7ed560] Read error
+[tls @ 0x55af9f7efe40] The specified session has been invalidated for some reason.
+    Last message repeated 1 times
+Guessed Channel Layout for Input Stream #0.0 : mono

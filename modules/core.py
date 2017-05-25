@@ -1,7 +1,9 @@
 import discord
 from discord.ext import commands
 import importlib
-import inspect
+import re
+import textwrap
+import inspect  # Don't remove this, it's used in eval
 from utils import confirm
 from utils.dataIO import dataIO
 
@@ -12,7 +14,9 @@ class core:
         self.firmware = "Stock Firmware: Compact 0.3"
         self.settings = dataIO.load_json('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
-        self.owners_task = self.amethyst.loop.create_task(self.owners_configuration())
+        self.owners_task = amethyst.loop.create_task(
+                self.owners_configuration())
+        self.env = {}
 
     def __unload(self):
         self.post_task.cancel()
@@ -51,8 +55,9 @@ class core:
                 self.settings['modules'].append(module_name)
                 await ctx.send('Module loaded.')
             else:
-                await ctx.send('The module you are trying to load is already loaded.\n'
-                               'Please use the `--reload` argument instead.')
+                await ctx.send(
+                    'The module you are trying to load is already loaded.\n'
+                    'Please use the `--reload` argument instead.')
         if argument == '--unload':
             if module_name in list(self.amethyst.extensions):
                 plugin = importlib.import_module(module_name)
@@ -62,7 +67,8 @@ class core:
                 await ctx.send('Module unloaded.')
             else:
                 await ctx.send(
-                        'The module you are trying to unload could not be found or is not loaded.')
+                    'The module you are trying to unload '
+                    'could not be found or is not loaded.')
         if argument == '--reload':
             if module_name in list(self.amethyst.extensions):
                 plugin = importlib.import_module(module_name)
@@ -77,7 +83,8 @@ class core:
         if argument not in argumentlist:
             await ctx.send(
                     "The argument you specified is invalid.\n"
-                    "Please check the available arguments using `[prefix]arguments`.")
+                    "Please check the available arguments using"
+                    " `[prefix]arguments`.")
 
     @commands.command()
     async def arguments(self, ctx):
@@ -95,14 +102,51 @@ class core:
             "guild": ctx.message.guild,
             "ctx": ctx,
             "discord": discord,
-            "self": self.amethyst,
+            "self": self,
+            "amethyst": self.amethyst,
+            "inspect": inspect
         }
 
-        output = eval(code, env)
-        if inspect.isawaitable(output):
-            output = await output
+        self.env.update(env)
 
-        await ctx.send('```py\n{0}\n```'.format(output))
+        code = code.strip("`")
+        if code.startswith("py\n"):
+            code = "\n".join(code.split("\n")[1:])
+        if not re.search(
+                "^(return|import|for|while|def|class|[a-zA-Z0-9]+\s*=)",
+                code, re.M) and len(code.split("\n")) == 1:
+            code = "_ = "+code
+
+        # Ignore this shitcode, it works
+        _code = "\n".join([
+            "async def func(self, env):",
+            "    locals().update(env)",
+            "    old_locals = locals().copy()",
+            "    try:",
+            "{}",
+            "        new_locals = {{k:v for k,v in locals().items() "
+                "if k not in old_locals and k not in "
+                "['old_locals','_','func']}}",
+            "        if new_locals != {{}}:",
+            "            return new_locals",
+            "        else:",
+            "            if inspect.isawaitable(_):",
+            "                _ = await _",
+            "            return _",
+            "    finally:",
+            "        self.env.update({{k:v for k,v in locals().items() "
+                "if k not in old_locals and k not in "
+                "['old_locals','_','new_locals','func']}})"
+        ]).format(textwrap.indent(code, '        '))
+
+        exec(_code, self.env)
+        func = self.env['func']
+        res = await func(self, self.env)
+        if res is not None:
+            self.env["_"] = res
+            await ctx.send('```py\n{0}\n```'.format(res))
+        else:
+            await ctx.send("\N{THUMBS UP SIGN}")
 
     @commands.command(aliases=['kys'])
     @confirm.instance_owner()
