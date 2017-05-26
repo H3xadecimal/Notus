@@ -1,9 +1,7 @@
 import discord
 from discord.ext import commands
 import importlib
-import re
-import textwrap
-import inspect  # Don't remove this, it's used in eval
+import inspect
 from utils import confirm
 from utils.dataIO import dataIO
 
@@ -14,9 +12,7 @@ class core:
         self.firmware = "Stock Firmware: Compact 0.3"
         self.settings = dataIO.load_json('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
-        self.owners_task = amethyst.loop.create_task(
-                self.owners_configuration())
-        self.env = {}
+        self.owners_task = amethyst.loop.create_task(self.owners_configuration())
 
     def __unload(self):
         self.post_task.cancel()
@@ -102,51 +98,14 @@ class core:
             "guild": ctx.message.guild,
             "ctx": ctx,
             "discord": discord,
-            "self": self,
-            "amethyst": self.amethyst,
-            "inspect": inspect
+            "self": self.amethyst,
         }
 
-        self.env.update(env)
+        output = eval(code, env)
+        if inspect.isawaitable(output):
+            output = await output
 
-        code = code.strip("`")
-        if code.startswith("py\n"):
-            code = "\n".join(code.split("\n")[1:])
-        if not re.search(
-                "^(return|import|for|while|def|class|[a-zA-Z0-9]+\s*=)",
-                code, re.M) and len(code.split("\n")) == 1:
-            code = "_ = "+code
-
-        # Ignore this shitcode, it works
-        _code = "\n".join([
-            "async def func(self, env):",
-            "    locals().update(env)",
-            "    old_locals = locals().copy()",
-            "    try:",
-            "{}",
-            "        new_locals = {{k:v for k,v in locals().items() "
-                "if k not in old_locals and k not in "
-                "['old_locals','_','func']}}",
-            "        if new_locals != {{}}:",
-            "            return new_locals",
-            "        else:",
-            "            if inspect.isawaitable(_):",
-            "                _ = await _",
-            "            return _",
-            "    finally:",
-            "        self.env.update({{k:v for k,v in locals().items() "
-                "if k not in old_locals and k not in "
-                "['old_locals','_','new_locals','func']}})"
-        ]).format(textwrap.indent(code, '        '))
-
-        exec(_code, self.env)
-        func = self.env['func']
-        res = await func(self, self.env)
-        if res is not None:
-            self.env["_"] = res
-            await ctx.send('```py\n{0}\n```'.format(res))
-        else:
-            await ctx.send("\N{THUMBS UP SIGN}")
+        await ctx.send('```py\n{0}\n```'.format(output))
 
     @commands.command(aliases=['kys'])
     @confirm.instance_owner()
