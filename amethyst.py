@@ -70,7 +70,7 @@ class Amethyst(commands.Bot):
 
         self.load_extension('modules.core')
 
-    async def on_command_error(self, context, exception):
+    async def on_command_error(self, exception, context):
         if isinstance(exception, commands_errors.MissingRequiredArgument):
             await self.send_command_help(context)
         elif isinstance(exception, commands_errors.CommandInvokeError):
