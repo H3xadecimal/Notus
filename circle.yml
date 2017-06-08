@@ -9,6 +9,9 @@ jobs:
     steps:
       - checkout
       - run:
+          command : |
+            set -x
+            apt install -y cloc
           command: |
            set -x 
            git clone https://github.com/Rapptz/discord.py --branch rewrite 
