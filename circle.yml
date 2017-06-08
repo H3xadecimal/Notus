@@ -1,3 +1,5 @@
+# Amethyst - CircleCI File for CI
+# Contributed by Capuccino
 version: 2
 jobs:
   build:
@@ -5,18 +7,16 @@ jobs:
       - image: circleci/python:3.6.1
     working_directory: ~/Amethyst
     steps:
-      - setup_remote_docker
       - checkout
       - run:
-        name: Resolve Dependencies
-        command: |
+          name: Install Dependencies
+          command: |
            set -x 
            git clone https://github.com/Rapptz/discord.py --branch rewrite 
            mv discord.py/discord discord
       - run:
-          name: Test
+          name: Test Source
           command: |
-            set -x
             cloc --exclude-dir=discord --exclude-dir=discord.py . 
             flake8 --exclude=discord,discord.py --show-source --max-line-length 120 . 
             python3 -m compileall -x discord.* .
