@@ -15,5 +15,6 @@ jobs:
            mv discord.py/discord discord
       - run:
           command: |
+           python -m pip install flake8
            flake8 --exclude=discord,discord.py --show-source --max-line-length 120 . 
-           python3 -m compileall -x discord.* .
+           python -m compileall -x discord.* .
