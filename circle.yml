@@ -8,7 +8,7 @@ jobs:
       - setup_remote_docker
       - checkout
       - run:
-        name: Docker Build
+        name: Resolve Dependencies
         command: |
            set -x 
            git clone https://github.com/Rapptz/discord.py --branch rewrite 
