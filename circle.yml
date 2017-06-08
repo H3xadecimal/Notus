@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: node:7.4.0
+      - image: circleci/python:3.6.1
     steps:
       - setup_remote_docker
       - checkout
