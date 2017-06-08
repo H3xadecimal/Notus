@@ -9,15 +9,11 @@ jobs:
     steps:
       - checkout
       - run:
-          command : |
-            set -x
-            apt install -y cloc
           command: |
            set -x 
            git clone https://github.com/Rapptz/discord.py --branch rewrite 
            mv discord.py/discord discord
       - run:
           command: |
-           cloc --exclude-dir=discord --exclude-dir=discord.py . 
            flake8 --exclude=discord,discord.py --show-source --max-line-length 120 . 
            python3 -m compileall -x discord.* .
