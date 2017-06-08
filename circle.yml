@@ -3,6 +3,8 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.6.1
+
+    working_directory: ~/Amethyst
     steps:
       - setup_remote_docker
       - checkout
