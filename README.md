@@ -1,9 +1,14 @@
-![Amethyst](amethyst-logo.png)
+![Amethyst](amethyst-logo.png) 
 
-# Amethyst (DEVELOPER BUILD)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/awau/Amethyst/developer_build/LICENSE)
+<a href="https://discord.gg/5sHTkKq"><img src="https://discordapp.com/api/guilds/251664386459041792/embed.png" alt="Discord server" /></a>
+
+# Amethyst (Developer Build)
+ [Support the Developers](https://patreon.com/capuccino) | [Discord Server](https://discord.gg/5sHTkKq)
+
 Amethyst is a discord bot built on Python using the discord.py library.
 
-Special thanks to the Amethyst Team for all the contribution.
+Special thanks to the Amethyst Team for all the contributions.
 
 This branch is for the developer build of Amethyst.
 
@@ -17,13 +22,12 @@ This branch is most likely gonna be more developped than the Master branch and e
 Yes!
 Install redis and discord.py's rewrite variant, add your desired token and prefix in `example_config.json`, rename `example_config.json` to `config.json` and boot amethyst.py!
 
-Don't understand how to set it up? Well you can mention me in the following discord server: https://discord.gg/5sHTkKq
+Don't understand how to set it up? Well you can mention me in the [discord server](https://discord.gg/5sHTkKq). 
 
-Default prefix is "test " and can be changed in `config.json`
+Default prefix is "test " and can be changed in `config.json`.
 
 # HELP I'M HAVING ISSUES!!!!11!
-Open a damn issue then.
-(I accept both User-side and Bot-side issues.)
+Open a [issue](https://github.com/awau/Amethyst/issues). 
 
 # Why this branch tho?
 Cause I know I am gonna lose the code at some point... Don't judge me.
