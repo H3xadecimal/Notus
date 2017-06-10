@@ -4,7 +4,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/python:3.6.1
+      - image: chinodesuuu/ci-amethyst
     working_directory: ~/Amethyst
     steps:
       - checkout
@@ -15,6 +15,7 @@ jobs:
            mv discord.py/discord discord
       - run:
           command: |
+           cloc --exclude-dir=discord --exclude-dir=discord.py .           
            python -m pip install flake8
            flake8 --exclude=discord,discord.py --show-source --max-line-length 120 . 
            python -m compileall -x discord.* .
