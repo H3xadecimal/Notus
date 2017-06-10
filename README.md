@@ -1,3 +1,5 @@
+![Amethyst](amethyst-logo.png)
+
 # Amethyst (DEVELOPER BUILD)
 Amethyst is a discord bot built on Python using the discord.py library.
 
