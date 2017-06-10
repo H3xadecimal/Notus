@@ -27,7 +27,7 @@ Don't understand how to set it up? Well you can mention me in the [discord serve
 Default prefix is "test " and can be changed in `config.json`.
 
 # HELP I'M HAVING ISSUES!!!!11!
-Open a [issue](https://github.com/awau/Amethyst/issues). 
+Open an [issue](https://github.com/awau/Amethyst/issues). 
 
 # Why this branch tho?
 Cause I know I am gonna lose the code at some point... Don't judge me.
