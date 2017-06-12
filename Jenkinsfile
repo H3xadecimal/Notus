@@ -7,9 +7,9 @@ pipeline {
     stages {
         stage('Resolve dependencies') {
             steps {
-                sh 'apt update'
-                sh 'apt upgrade -y'
-                sh 'apt install python3 python3-dev python3-pip libffi-dev cloc -y'
+                sh 'apt-get update'
+                sh 'apt-get upgrade -y'
+                sh 'apt-get install python3 python3-dev python3-pip libffi-dev cloc -y'
                 sh 'pip3 install flake8'
                 sh 'pip3 install git+https://github.com/Rapptz/discord.py@rewrite'
             }
