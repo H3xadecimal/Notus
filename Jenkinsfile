@@ -2,7 +2,6 @@ pipeline {
     agent {
         docker {
             image 'jenkins-python'
-            label 'amethyst'
         }
     }
     stages {
