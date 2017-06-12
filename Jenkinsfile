@@ -1,4 +1,10 @@
-docker.image('jenkins-python').inside {
+pipeline {
+    agent {
+        docker {
+            image 'jenkins-python'
+            label 'amethyst'
+        }
+    }
     stages {
         stage('Resolve dependencies') {
             steps {
