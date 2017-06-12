@@ -1,4 +1,4 @@
-docker.image('maven:3.3.3-jdk-8').inside {
+docker.image('jenkins-python').inside {
     stages {
         stage('Resolve dependencies') {
             steps {
