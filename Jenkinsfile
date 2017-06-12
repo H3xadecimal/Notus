@@ -7,6 +7,7 @@ pipeline {
     stages {
         stage('Resolve dependencies') {
             steps {
+                sh 'whoami'
                 sh 'apt-get update'
                 sh 'apt-get upgrade -y'
                 sh 'apt-get install python3 python3-dev python3-pip libffi-dev cloc -y'
