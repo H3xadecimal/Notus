@@ -1,6 +1,5 @@
 from typing import Tuple, List
 import shlex
-import discord
 
 
 def get_cmd(string: str) -> str:
@@ -15,19 +14,14 @@ def parse_prefixes(string: str, prefixes: List[str]) -> str:
             string = string[len(prefix):]
             break
 
-    return str
+    return string
 
 
-def get_args(msg: discord.Message) -> Tuple[str, str, Tuple[str, ...], Tuple[str, ...]]:
+def get_args(string: str) -> Tuple[str, str, Tuple[str, ...], Tuple[str, ...]]:
     '''Parses a message to get args and suffix.'''
-    suffix = ' '.join(msg.suffix.split(' ', 1)[1:])
-
-    clean_suffix = ' '.join(msg.clean_suffix.split(' ', 1)[1:])
+    suffix = string.split(' ', 1)[1:]
 
     args = shlex.split(suffix.replace(r'\"', '\u009E').replace(r"\'", '\u009F'))
     args = [x.replace('\u009E', '"').replace('\u009F', "'") for x in args]
 
-    clean_args = shlex.split(clean_suffix.replace('\"', '\u009E').replace(r"\'", '\u009F'))
-    clean_args = [x.replace('\u009E', '"').replace('\u009F', "'") for x in clean_args]
-
-    return suffix, clean_suffix, args, clean_args
+    return suffix, args
