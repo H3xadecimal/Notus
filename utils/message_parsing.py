@@ -21,7 +21,12 @@ def get_args(string: str) -> Tuple[str, str, Tuple[str, ...], Tuple[str, ...]]:
     '''Parses a message to get args and suffix.'''
     suffix = string.split(' ', 1)[1:]
 
-    args = shlex.split(suffix.replace(r'\"', '\u009E').replace(r"\'", '\u009F'))
+    if suffix:
+        suffix = suffix[0]
+    else:
+        suffix = ''
+
+    args = shlex.split(suffix.replace(r'\"', '\u009E').replace("'", '\u009F'))
     args = [x.replace('\u009E', '"').replace('\u009F', "'") for x in args]
 
     return suffix, args
