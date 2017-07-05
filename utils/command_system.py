@@ -1,4 +1,4 @@
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Set
 from utils import message_parsing
 import discord
 import inspect
@@ -39,6 +39,10 @@ USED_OPTIONS = ['args', 'suffix', 'clean_args', 'clean_suffix', 'cmd']
 
 
 class Context:
+    '''
+    Custom object that get's passed to commands.
+    Not intended to be created manually.
+    '''
     def __init__(self, msg: discord.Message, amethyst: discord.Client):
         cleaned = message_parsing.parse_prefixes(msg.content, amethyst.config['AMETHYST_PREFIXES'])
         self.msg = msg
@@ -95,6 +99,7 @@ class Context:
         return msg
 
     def is_dm(self):
+        '''Checks if the channel for the context is a DM or not.'''
         return isinstance(self.msg.channel, discord.DMChannel)
 
     def has_permission(self, permission, who='self'):
@@ -112,6 +117,7 @@ class Context:
 
 
 class Command:
+    '''Represents a command.'''
     def __init__(self, func: Callable[..., None],
                  *, name: str=None, description: str = '',
                  aliases: list = [], usage: str = '',):
@@ -127,6 +133,7 @@ class Command:
         return self.name
 
     async def run(self, ctx: Context) -> None:
+        '''Runs a command, taking into account the checks for the command.'''
         if not self.checks:
             await self.func(self.cls, ctx)
         else:
@@ -147,15 +154,21 @@ class Command:
 
 
 class CommandGroup(Command):
+    '''Represents a command that contains additional commands as subcommands.'''
     def __init__(self, func, **attrs):
         super().__init__(func, **attrs)
         self.all_commands = {}
 
     @property
-    def commands(self):
+    def commands(self) -> Set[Command]:
+        '''Set of all unique commands and aliases in the group.'''
         return set(self.all_commands.values())
 
     def add_command(self, cmd):
+        '''
+        Adds a command to the group.
+        You should use the command decorator.
+        '''
         if not isinstance(cmd, Command):
             raise TypeError("Passed command isn't a Command instance.")
 
@@ -171,6 +184,9 @@ class CommandGroup(Command):
             self.all_commands[alias] = cmd
 
     async def run(self, ctx: Context) -> None:
+        '''
+        Runs the main command, or a subcommand, taking into account the group's checks, and the subcommand's checks.
+        '''
         if not ctx.args or ctx.args[0] not in self.all_commands:
             if not self.checks:
                 await self.func(self.cls, ctx)
@@ -221,6 +237,7 @@ class CommandGroup(Command):
                     await cmd.run(ctx)
 
     def command(self, **attrs):
+        '''Decorator to add a command into the group.'''
         def decorator(func):
             res = command(**attrs)(func)
 
@@ -231,6 +248,7 @@ class CommandGroup(Command):
 
 
 class CommandHolder:
+    '''Object that holds commands and aliases, as well as managing the loading and unloading of modules.'''
     def __init__(self, amethyst):
         self.commands = {}
         self.aliases = {}
@@ -244,6 +262,7 @@ class CommandHolder:
         return x in self.commands
 
     def load_module(self, module_name: str) -> None:
+        '''Loads a module by name, and registers all its commands.'''
         if module_name in self.modules:
             raise Exception(f'Module `{module_name}` is already loaded.')
 
@@ -282,6 +301,7 @@ class CommandHolder:
         self.modules[module_name] = loaded_cmds + loaded_aliases
 
     def reload_module(self, module_name: str) -> None:
+        '''Reloads a module by name, and all its commands.'''
         if module_name not in self.modules:
             self.load_module(module_name)
             return
@@ -290,6 +310,7 @@ class CommandHolder:
         self.load_module(module_name)
 
     def unload_module(self, module_name: str) -> None:
+        '''Unloads a module by name, and unregisters all its commands.'''
         if module_name not in self.modules:
             raise Exception(f'Module `{module_name}` is not loaded.')
 
@@ -303,6 +324,7 @@ class CommandHolder:
         del sys.modules[module_name]
 
     def get_command(self, cmd_name: str) -> Union[Command, None]:
+        '''Easily get a command via its name or alias'''
         return self.aliases[cmd_name] if cmd_name in self.aliases else\
                self.commands[cmd_name] if cmd_name in self.commands else None
 
@@ -329,6 +351,7 @@ class CommandHolder:
 
 # Command conversion decorator
 def command(**attrs):
+    '''Decorator which converts a function into a command.'''
     def decorator(func):
         if isinstance(func, Command):
             raise TypeError('Function is already a command.')
@@ -343,6 +366,7 @@ def command(**attrs):
 
 # Command group conversion decorator
 def group(**attrs):
+    '''Decorator which converts a function into a command group.'''
     def decorator(func):
         if isinstance(func, CommandGroup):
             raise TypeError('Function is already a command group.')
