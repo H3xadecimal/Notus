@@ -1,7 +1,8 @@
 ![Amethyst](amethyst-logo.png) 
 
+![Amethyst Build Status](https://jenkins.pandentia.cf/view/Hexadecimal's%20Projects/job/Amethyst/job/developer_build/48/badge/icon)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/awau/Amethyst/developer_build/LICENSE)
-<a href="https://discord.gg/5sHTkKq"><img src="https://discordapp.com/api/guilds/251664386459041792/embed.png" alt="Discord server" /></a> ![Amethyst Build Status](https://jenkins.pandentia.cf/view/Hexadecimal's%20Projects/job/Amethyst/job/developer_build/48/badge/icon)
+<a href="https://discord.gg/5sHTkKq"><img src="https://discordapp.com/api/guilds/251664386459041792/embed.png" alt="Discord server" /></a> 
 
 # Amethyst (Developer Build)
  [Support the Developers](https://patreon.com/capuccino) | [Discord Server](https://discord.gg/5sHTkKq)
