@@ -100,7 +100,7 @@ class Amethyst(discord.Client):
 
                     for cmd in module_commands:
                         spacing = ' ' * (len(longest_cmd) - len(cmd.name) + 1)
-                        line = f'  {cmd.name}{spacing}{cmd.description}'
+                        line = f'  {cmd.name}{spacing}{cmd.short_description}'
 
                         if len(line) > 80:
                             line = line[:77] + '...'
@@ -129,7 +129,7 @@ class Amethyst(discord.Client):
 
                     for command in commands:
                         spacing = ' ' * (len(longest_cmd) - len(command.name) + 1)
-                        line = f'  {command.name}{spacing}{command.description}'
+                        line = f'  {command.name}{spacing}{command.short_description}'
 
                         paginator.add_line(line)
 
@@ -164,7 +164,7 @@ class Amethyst(discord.Client):
             if not child:
                 return await ctx.send('Unknown subcommand.')
 
-            paginator.add_line(prefixes[0] + parent.name + ' ' + child.name + ' ' + child.usage, empty=True)
+            paginator.add_line(prefixes[0] + ctx.cmd + ' ' + child.usage, empty=True)
             paginator.add_line(child.description)
 
             if child.aliases:

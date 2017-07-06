@@ -124,6 +124,7 @@ class Command:
         self.func = func
         self.name = name or func.__name__
         self.description = description or inspect.cleandoc(func.__doc__ or '')
+        self.short_description = self.description.split('\n')[0]
         self.usage = usage
         self.aliases = aliases or []
         self.cls = None
