@@ -1,6 +1,7 @@
 from utils.command_system import command
 from utils import confirm
 from utils.dataIO import dataIO
+from utils.lookups import Lookups
 import discord
 import inspect
 
@@ -12,6 +13,7 @@ class Core:
         self.settings = dataIO.load_json('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
         self.owners_task = amethyst.loop.create_task(self.owners_configuration())
+        self.lookups = Lookups(amethyst)
 
     def __unload(self):
         self.post_task.cancel()
@@ -109,6 +111,7 @@ class Core:
             "guild": ctx.msg.guild,
             "ctx": ctx,
             "discord": discord,
+            "lookups": self.lookups,
             "self": self.amethyst,
         }
 
