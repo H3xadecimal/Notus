@@ -81,7 +81,7 @@ class Amethyst(discord.Client):
             cmd = self.holder.get_command(ctx.cmd)
 
             if not cmd:
-                return await ctx.send('Unknown command.')            
+                return await ctx.send('Unknown command.')
 
             if cmd.name == 'help':
                 longest_cmd = sorted(self.holder.all_commands, key=len, reverse=True)[0]
