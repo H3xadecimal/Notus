@@ -67,11 +67,25 @@ class Lookups:
         member = None
 
         if re.match(r'<@!?\d+>', who):
+            id = int(re.match(r'<@!?(\d+)>', who)[1])
+
             if ctx.is_dm():
-                pass
+                return self.amethyst.get_user(id)
+            else:
+                member = [m for m in ctx.msg.guild.members if m.id == id]
+
+                if member:
+                    return member[0]
+                else:
+                    return None
         else:
             if ctx.is_dm():
-                members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
+                if re.match(r'^\d+$', who) and len(who) != 4:
+                    members = [u for u in self.amethyst.users if who in str(u.id) or who in u.name]
+                elif re.match(r'^\d+$', who) and len(who) == 4:
+                    members = [u for u in self.amethyst.users if who == u.discriminator]
+                else:
+                    members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
 
                 if len(members) > 1:
                     member = await self.__prompt__(ctx, who, members, 'members')
@@ -84,8 +98,13 @@ class Lookups:
 
                 return member
             else:
-                members = [m for m in ctx.msg.guild.members if who.lower() in m.name.lower() or
-                           (m.nick and who.lower() in m.nick.lower())]
+                if re.match(r'^\d+$', who) and len(who) != 4:
+                    members = [m for m in ctx.msg.guild.members if who in str(m.id) or who in m.name]
+                elif re.match(r'^\d+$', who) and len(who) == 4:
+                    members = [m for m in ctx.msg.guild.members if who == m.discriminator]
+                else:
+                    members = [m for m in ctx.msg.guild.members if who.lower() in m.name.lower() or
+                               (m.nick and who.lower() in m.nick.lower())]
 
                 if len(members) > 1:
                     member = await self.__prompt__(ctx, who, members, 'members')
