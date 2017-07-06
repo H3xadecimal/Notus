@@ -168,7 +168,7 @@ class Amethyst(discord.Client):
             paginator.add_line(child.description)
 
             if child.aliases:
-                aliases = ', '.join(cmd.aliases)
+                aliases = ', '.join(child.aliases)
 
                 paginator.add_line('')
                 paginator.add_line(f'Aliases for this command are: {aliases}')
