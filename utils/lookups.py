@@ -1,5 +1,6 @@
 import discord
 import asyncio
+import re
 
 
 class BadResponseException(Exception):
@@ -31,7 +32,7 @@ class Lookups:
         delet = await ctx.send(msg)
         try:
             msg = await self.amethyst.wait_for('message',
-                                               check=lambda m: m.author.id == ctx.message.author.id,
+                                               check=lambda m: m.author.id == ctx.msg.author.id,
                                                timeout=15)
             choice = int(msg.content)
 
@@ -40,16 +41,16 @@ class Lookups:
                 return BadResponseException()
 
             if type == 'members':
-                if isinstance(ctx.message.channel, discord.DMChannel):
+                if ctx.is_dm():
                     choice = [u for u in self.amethyst.users if u.id == what_list[choice - 1][2]][0]
                 else:
-                    choice = [m for m in ctx.guild.members if m.id == what_list[choice - 1][2]][0]
+                    choice = [m for m in ctx.msg.guild.members if m.id == what_list[choice - 1][2]][0]
             elif type == 'channels':
-                choice = [c for c in ctx.guild.channel if c.id == what_list[choice - 1][1]][0]
+                choice = [c for c in ctx.msg.guild.channel if c.id == what_list[choice - 1][1]][0]
             elif type == 'guilds':
                 choice = [g for g in self.amethyst.guilds if g.id == what_list[choice - 1][1]][0]
             elif type == 'roles':
-                choice = [r for r in ctx.guild.roles if r.id == what_list[choice - 1][1]][0]
+                choice = [r for r in ctx.msg.guild.roles if r.id == what_list[choice - 1][1]][0]
             else:
                 raise TypeError('Unknown type `{}`'.format(type))
 
@@ -65,10 +66,11 @@ class Lookups:
     async def member_lookup(self, ctx, who, not_found_msg=True):
         member = None
 
-        if len(ctx.message.mentions) > 0:
-            member = ctx.message.mentions[0]
+        if re.match(r'<@!?\d+>', who):
+            if ctx.is_dm():
+                pass
         else:
-            if isinstance(ctx.message.channel, discord.DMChannel):
+            if ctx.is_dm():
                 members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
 
                 if len(members) > 1:
@@ -82,7 +84,7 @@ class Lookups:
 
                 return member
             else:
-                members = [m for m in ctx.guild.members if who.lower() in m.name.lower() or
+                members = [m for m in ctx.msg.guild.members if who.lower() in m.name.lower() or
                            (m.nick and who.lower() in m.nick.lower())]
 
                 if len(members) > 1:
@@ -97,12 +99,12 @@ class Lookups:
                 return member
 
     async def channel_lookup(self, ctx, what, not_found_msg=True):
-        if isinstance(ctx.message.channel, discord.DMChannel):
+        if ctx.is_dm():
             await ctx.send('Channels cannot be looked up in DMs.')
             return BadResponseException()
         else:
             channel = None
-            channels = [c for c in ctx.guild.channels if what.lower() in c.name.lower()]
+            channels = [c for c in ctx.msg.guild.channels if what.lower() in c.name.lower()]
 
             if len(channels) > 1:
                 channel = await self.__prompt__(ctx, what, channels, 'channels')
@@ -116,12 +118,12 @@ class Lookups:
             return channel
 
     async def role_lookup(self, ctx, what, not_found_msg=True):
-        if isinstance(ctx.message.channel, discord.DMChannel):
+        if ctx.is_dm():
             await ctx.send('Roles cannot be looked up in DMs.')
             return BadResponseException()
         else:
             role = None
-            roles = [r for r in ctx.guild.roles if what.lower() in r.name.lower()]
+            roles = [r for r in ctx.msg.guild.roles if what.lower() in r.name.lower()]
 
             if len(roles) > 1:
                 role = await self.__prompt__(ctx, what, roles, 'roles')
