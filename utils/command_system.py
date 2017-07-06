@@ -315,6 +315,9 @@ class CommandHolder:
         if module_name not in self.modules:
             raise Exception(f'Module `{module_name}` is not loaded.')
 
+        if hasattr(self.get_command(self.modules[module_name][0]).cls, '__unload'):
+            self.get_command(self.modules[module_name][0]).cls.__unload()
+
         for cmd in self.modules[module_name]:
             if cmd in self.aliases:
                 del self.aliases[cmd]
