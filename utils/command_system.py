@@ -175,6 +175,7 @@ class CommandGroup(Command):
         if cmd.name in self.all_commands:
             raise AttributeError(f'Command `{cmd.name}` is already registered.')
 
+        cmd.parent = self
         self.all_commands[cmd.name] = cmd
 
         for alias in cmd.aliases:
@@ -326,7 +327,7 @@ class CommandHolder:
     def get_command(self, cmd_name: str) -> Union[Command, None]:
         '''Easily get a command via its name or alias'''
         return self.aliases[cmd_name] if cmd_name in self.aliases else\
-               self.commands[cmd_name] if cmd_name in self.commands else None
+            self.commands[cmd_name] if cmd_name in self.commands else None  # I wanted this to line up but fuck u pep8
 
     async def run_command(self, ctx: Context) -> None:
         cmd = self.get_command(ctx.cmd)
