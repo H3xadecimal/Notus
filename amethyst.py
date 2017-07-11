@@ -9,6 +9,7 @@ import json
 import discord
 import string
 import asyncio
+import aiohttp
 
 with open("config.json") as f:
     config = json.load(f)
@@ -67,6 +68,7 @@ class Amethyst(discord.Client):
         self.settings = dataIO.load_json('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
         self.holder = command_system.CommandHolder(self)
+        self.session = aiohttp.ClientSession()
 
     async def blacklist_check(self):
         if 'blacklist' not in self.settings:
