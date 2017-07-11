@@ -1,17 +1,17 @@
-import discord
 import asyncio
 import re
 
 
 class BadResponseException(Exception):
-    pass
+    def __bool__(self):
+        return False
 
 
 class Lookups:
     def __init__(self, amethyst):
         self.amethyst = amethyst
 
-    async def __prompt__(self, ctx, what, what_list, type):
+    async def __prompt__(self, ctx, what, what_list, type, *, suppress_error_msgs=False):
         if type == 'members':
             what_list = [(x.name, x.discriminator, x.id) for x in what_list][:10]
             format_list = ['{0}. {1[0]}#{1[1]}'.format(what_list.index(x) + 1, x) for x in what_list]
@@ -37,7 +37,8 @@ class Lookups:
             choice = int(msg.content)
 
             if choice < 0 or choice > len(format_list):
-                await ctx.send('Choice is either too large or too small.')
+                if not suppress_error_msgs:
+                    await ctx.send('Choice is either too large or too small.')
                 return BadResponseException()
 
             if type == 'members':
@@ -57,13 +58,21 @@ class Lookups:
             await delet.delete()
             return choice
         except asyncio.TimeoutError:
-            await ctx.send('Choice timed out.')
+            await delet.delete()
+
+            if not suppress_error_msgs:
+                await ctx.send('Choice timed out.')
+
             return BadResponseException()
         except ValueError:
-            await ctx.send('Invalid choice (Full number required).')
+            await delet.delete()
+
+            if not suppress_error_msgs:
+                await ctx.send('Invalid choice (Full number required).')
+
             return BadResponseException()
 
-    async def member_lookup(self, ctx, who, not_found_msg=True):
+    async def member_lookup(self, ctx, who, *, not_found_msg=True, suppress_error_msgs=False):
         member = None
 
         if re.match(r'<@!?\d+>', who):
@@ -88,11 +97,12 @@ class Lookups:
                     members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
 
                 if len(members) > 1:
-                    member = await self.__prompt__(ctx, who, members, 'members')
+                    member = await self.__prompt__(ctx, who, members,
+                                                   'members', suppress_error_msgs=suppress_error_msgs)
                 elif len(members) == 1:
                     member = members[0]
                 else:
-                    if not_found_msg:
+                    if not_found_msg or not suppress_error_msgs:
                         await ctx.send('User not found.')
                         member = BadResponseException()
 
@@ -111,13 +121,13 @@ class Lookups:
                 elif len(members) == 1:
                     member = members[0]
                 else:
-                    if not_found_msg:
+                    if not_found_msg or not suppress_error_msgs:
                         await ctx.send('User not found.')
                         member = BadResponseException()
 
                 return member
 
-    async def channel_lookup(self, ctx, what, not_found_msg=True):
+    async def channel_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
         if ctx.is_dm():
             await ctx.send('Channels cannot be looked up in DMs.')
             return BadResponseException()
@@ -126,17 +136,18 @@ class Lookups:
             channels = [c for c in ctx.msg.guild.channels if what.lower() in c.name.lower()]
 
             if len(channels) > 1:
-                channel = await self.__prompt__(ctx, what, channels, 'channels')
+                channel = await self.__prompt__(ctx, what, channels,
+                                                'channels', suppress_error_msgs=suppress_error_msgs)
             elif len(channels) == 1:
                 channel = channels[0]
             else:
-                if not_found_msg:
+                if not_found_msg or suppress_error_msgs:
                     await ctx.send('Channel not found.')
                     channel = BadResponseException()
 
             return channel
 
-    async def role_lookup(self, ctx, what, not_found_msg=True):
+    async def role_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
         if ctx.is_dm():
             await ctx.send('Roles cannot be looked up in DMs.')
             return BadResponseException()
@@ -145,26 +156,26 @@ class Lookups:
             roles = [r for r in ctx.msg.guild.roles if what.lower() in r.name.lower()]
 
             if len(roles) > 1:
-                role = await self.__prompt__(ctx, what, roles, 'roles')
+                role = await self.__prompt__(ctx, what, roles, 'roles', suppress_error_msgs=suppress_error_msgs)
             elif len(roles) == 1:
                 role = roles[0]
             else:
-                if not_found_msg:
+                if not_found_msg or suppress_error_msgs:
                     await ctx.send('Role not found.')
                     role = BadResponseException()
 
             return role
 
-    async def guild_lookup(self, ctx, what, not_found_msg=True):
+    async def guild_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
         guild = None
         guilds = [g for g in self.amethyst.guilds if what.lower() in g.name.lower()]
 
         if len(guilds) > 1:
-            guild = await self.__prompt__(ctx, what, guilds, 'guilds')
+            guild = await self.__prompt__(ctx, what, guilds, 'guilds', suppress_error_msgs=suppress_error_msgs)
         elif len(guilds) == 1:
             guild = guilds[0]
         else:
-            if not_found_msg:
+            if not_found_msg or suppress_error_msgs:
                 await ctx.send('Server not found.')
                 guild = BadResponseException()
 
