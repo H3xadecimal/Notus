@@ -4,6 +4,7 @@ import discord
 import inspect
 import re
 import sys
+import asyncio
 
 PRETTY_PRINTED_PERMS = {
     'create_insant_invite': 'Create Instant Invite',
@@ -114,6 +115,9 @@ class Context:
             return getattr(self.msg.channel.permissions_for(self.msg.guild.me), permission)
         elif who == 'author':
             return getattr(self.msg.channel.permissions_for(self.msg.author), permission)
+
+    def typing(self):
+        return ContextTyping(self)
 
 
 class Command:
@@ -354,6 +358,41 @@ class CommandHolder:
         return sorted(self.modules.keys())
 
 
+class ContextTyping:
+    def __init__(self, ctx):
+        self.loop = ctx.msg.channel._state.loop
+        self.ctx = ctx
+
+    async def do_typing(self):
+        try:
+            channel = self._channel
+        except AttributeError:
+            channel = self.ctx.msg.channel
+
+        typing = channel._state.http.send_typing
+
+        while True:
+            await typing(channel.id)
+            await asyncio.sleep(5)
+
+    def __enter__(self):
+        self.task = asyncio.ensure_future(self.do_typing(), loop=self.loop)
+        self.task.add_done_callback(_typing_done_callback)
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.task.cancel()
+
+    async def __aenter__(self):
+        self._channel = self.ctx.msg.channel
+
+        await self._channel._state.http.send_typing(self._channel.id)
+        return self.__enter__()
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.task.cancel()
+
+
 # Command conversion decorator
 def command(**attrs):
     '''Decorator which converts a function into a command.'''
@@ -400,3 +439,11 @@ def check(checker):
         return func
 
     return decorator
+
+
+# Some callback for typing
+def _typing_done_callback(fut):
+    try:
+        fut.exception()
+    except:
+        pass
