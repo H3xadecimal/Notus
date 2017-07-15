@@ -43,7 +43,10 @@ class Core:
     async def help(self, ctx):
         """Show help for all the commands."""
         if not ctx.args:
-            await self.amethyst.send_command_help(ctx)
+            try:
+                await self.amethyst.send_command_help(ctx)
+            except discord.Forbidden:
+                await ctx.send('Cannot send the help to you. Perhaps you have DMs blocked?')
         else:
             ctx.cmd = ctx.suffix
             await self.amethyst.send_command_help(ctx)
