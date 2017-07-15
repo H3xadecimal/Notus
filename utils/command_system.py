@@ -5,6 +5,7 @@ import inspect
 import re
 import sys
 import asyncio
+import importlib
 
 PRETTY_PRINTED_PERMS = {
     'create_insant_invite': 'Create Instant Invite',
@@ -272,7 +273,7 @@ class CommandHolder:
         if module_name in self.modules:
             raise Exception(f'Module `{module_name}` is already loaded.')
 
-        module = getattr(__import__(module_name), module_name.split('.')[-1])
+        module = importlib.import_module(module_name)
 
         try:
             module.setup
