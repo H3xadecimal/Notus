@@ -5,7 +5,7 @@ import time
 import romkan
 import discord
 from utils.tts import MaryTTS
-from discord.ext import commands
+from utils.command_system import command
 
 from . import music_sources as sources
 from . import music_converters as conv
@@ -404,26 +404,27 @@ class music:
         self.amethyst = amethyst
         self.players = {}
 
-    @commands.command(name='play')
-    async def music_play(self, ctx, *, song: str):
+    @command(aliases=['play'], usage='[song]')
+    async def music_play(self, ctx):
+        song = ctx.suffix
         start = False
-        if ctx.guild.id not in self.players:
-            vc = await ctx.author.voice.channel.connect(reconnect=True)
-            self.players[ctx.guild.id] = Player(vc, ctx.channel, self)
+        if ctx.msg.guild.id not in self.players:
+            vc = await ctx.msg.author.voice.channel.connect(reconnect=True)
+            self.players[ctx.msg.guild.id] = Player(vc, ctx.msg.channel, self)
             start = True
 
-        await self.players[ctx.guild.id].queue(song, requester=ctx.author)
+        await self.players[ctx.msg.guild.id].queue(song, requester=ctx.msg.author)
 
         if start:
-            self.players[ctx.guild.id].start()
+            self.players[ctx.msg.guild.id].start()
 
-    @commands.command(name='queue')
+    @command(aliases=['queue'])
     async def music_playlist(self, ctx):
-        player = self.players[ctx.guild.id]
+        player = self.players[ctx.msg.guild.id]
         queue = []
         for song in player._queue.queue:
             s = song.title
-            if song.requester == ctx.author:
+            if song.requester == ctx.msg.author:
                 s = "**{}**".format(s)
             queue.append(s)
 
@@ -433,18 +434,18 @@ class music:
                      "\n".join(queue))
         await ctx.send(t)
 
-    @commands.command(name="disconnect")
+    @command(aliases=["disconnect"])
     async def music_disconnect(self, ctx):
-        await self.players[ctx.guild.id].stop()
+        await self.players[ctx.msg.guild.id].stop()
 
-    @commands.command(name="song")
+    @command(aliases=["song"])
     async def music_current_song(self, ctx):
-        song = self.players[ctx.guild.id].current_song
+        song = self.players[ctx.msg.guild.id].current_song
         title = song.title
         url = song.url
         req = str(song.requester)
         upl = song.uploader
-        perc = self.players[ctx.guild.id].percentage
+        perc = self.players[ctx.msg.guild.id].percentage
         prog = "#"*round(perc*10)+"-"*round((1-perc)*10)
 
         e = discord.Embed(title="Now Playing",
@@ -461,14 +462,14 @@ class music:
 
         await ctx.send(embed=e)
 
-    @commands.command(name="skip")
+    @command(aliases=['skip'])
     async def music_skip(self, ctx):
-        if ctx.author == self.players[ctx.guild.id].current_song.requester:
-            self.players[ctx.guild.id].skip()
+        if ctx.msg.author == self.players[ctx.msg.guild.id].current_song.requester:
+            self.players[ctx.msg.guild.id].skip()
         else:
             await ctx.send("Skipping has only been implemented for the"
                            " person who queued the song.")
 
 
 def setup(amethyst):
-    amethyst.add_cog(music(amethyst))
+    return music(amethyst)
