@@ -281,7 +281,8 @@ class CommandHolder:
             raise Exception('Module does not have a `setup` function.')
 
         module = module.setup(self.amethyst)
-        cmds = [x for x in dir(module) if not re.match('__?.*(?:__)?', x) and isinstance(getattr(module, x), Command)]
+        cmds = [x for x in dir(module) if not re.match('__?.*(?:__)?', x) and isinstance(getattr(module, x), Command)
+                and not hasattr(getattr(module, x), 'parent')]
         loaded_cmds = []
         loaded_aliases = []
 
@@ -297,6 +298,10 @@ class CommandHolder:
 
             cmd.cls = module
             self.commands[cmd.name] = cmd
+
+            if isinstance(cmd, CommandGroup):
+                for cmd in cmd.commands:
+                    cmd.cls = module
 
             for alias in cmd.aliases:
                 self.aliases[alias] = self.commands[cmd.name]
