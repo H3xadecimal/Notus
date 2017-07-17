@@ -258,7 +258,7 @@ class Player:
         next = self._queue.pop()
 
         await self.chan.send('Now Playing: {}'.format(next.title))
-        print('Now Playing: {}'.format(next.title))
+        # print('Now Playing: {}'.format(next.title))
         await next.load()
 
         self._start_time = time.time()
@@ -293,8 +293,8 @@ class Player:
                 for c, r in replaces.items():
                     t = t.replace(c, r)
                 t = "".join(c for c in t if c in can_pronounce)
-                data = await self.tts._say('Now Playing: {}'.format(t),
-                                           voice="dfki-prudence")
+                # data = await self.tts._say('Now Playing: {}'.format(t),
+                #                            voice="dfki-prudence")
                 with open(source, "wb") as f:
                     f.write(data)
                 self.source = sources.TTSOverlay(self.source, source,
