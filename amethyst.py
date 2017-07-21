@@ -1,11 +1,15 @@
-from discord.ext import commands
-from discord.ext.commands import errors as commands_errors
 from discord import utils as dutils
+from discord.ext.commands import Paginator
 from utils.dataIO import dataIO
+from utils import command_system, message_parsing
 import traceback
 import redis
 import argparse
 import json
+import discord
+import string
+import asyncio
+import aiohttp
 
 with open("config.json") as f:
     config = json.load(f)
@@ -15,7 +19,19 @@ redis_pass = config.get('AMETHYST_REDIS_PASSWORD')
 redis_port = int(config.get('AMETHYST_REDIS_PORT') or 6379)
 redis_db = int(config.get('AMETHYST_REDIS_DB') or 0)
 token = config.get('AMETHYST_TOKEN')
-prefix = config.get('AMETHYST_PREFIX')
+prefixes = config.get('AMETHYST_PREFIXES', [])
+tagline = config.get('AMETHYST_TAGLINE') or '{} is an instance of Amethyst, learn more about the\
+ project at https://github.com/awau/Amethyst'
+
+if config.get('AMETHYST_PREFIX'):
+    print('IMPORTANT')
+    print('Oldish config detected with key `AMETHYST_PREFIX`')
+    print('Due to the new system supporting multiple prefixes, this value is being phased out in favour of '
+          '`AMETHYST_PREFIXES`')
+    print('The original key will still be added to all prefixes for now, however we cannot guarantee that this will be '
+          'around forever, so it is recommended that you switch over to `AMETHYST_PREFIXES`')
+
+    prefixes.append(config.get('AMETHYST_PREFIX'))
 
 # CMD-L Arguments
 parser = argparse.ArgumentParser()
@@ -41,21 +57,127 @@ except:
     exit(2)
 
 
-class Amethyst(commands.Bot):
-    def __init__(self, command_prefix, args, redis, **options):
-        super().__init__(command_prefix, **options)
+class Amethyst(discord.Client):
+    def __init__(self, config, args, redis, **options):
+        super().__init__(**options)
         self.args = args
         self.redis = redis
         self.owner = None
-        self.send_command_help = send_cmd_help
+        self.config = config
+        self.send_command_help = self.send_cmd_help
         self.settings = dataIO.load_json('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
+        self.holder = command_system.CommandHolder(self)
+        self.session = aiohttp.ClientSession()
 
     async def blacklist_check(self):
         if 'blacklist' not in self.settings:
             self.settings['blacklist'] = []
         else:
             pass
+
+    async def send_cmd_help(self, ctx):
+        paginator = Paginator()
+
+        if len(ctx.cmd.split(' ')) != 2:
+            cmd = self.holder.get_command(ctx.cmd)
+
+            if not cmd:
+                return await ctx.send('Unknown command.')
+
+            if cmd.name == 'help':
+                longest_cmd = sorted(self.holder.all_commands, key=len, reverse=True)[0]
+                modules = set([self.holder.get_command(x).cls.__class__.__name__ for x in self.holder.commands])
+                modules = sorted(modules)
+
+                paginator.add_line(tagline.format(self.user.name), empty=True)
+
+                for module in modules:
+                    paginator.add_line(module + ':')
+
+                    module_commands = [self.holder.get_command(x) for x in self.holder.commands if
+                                       self.holder.get_command(x).cls.__class__.__name__ == module and
+                                       not hasattr(self.holder.get_command(x), 'parent')]
+                    module_commands = sorted(module_commands, key=lambda x: x.name)
+
+                    for cmd in module_commands:
+                        spacing = ' ' * (len(longest_cmd) - len(cmd.name) + 1)
+                        line = f'  {cmd.name}{spacing}{cmd.short_description}'
+
+                        if len(line) > 80:
+                            line = line[:77] + '...'
+
+                        paginator.add_line(line)
+
+                paginator.add_line('')
+                paginator.add_line(f'Type {prefixes[0]}help command for more info on a command.')
+
+                if len(prefixes) > 1:
+                    extra_prefixes = ', '.join([f'"{x}"' for x in prefixes[1:]])
+
+                    paginator.add_line(f'Additional prefixes include: {extra_prefixes}')
+
+                for page in paginator.pages:
+                    await ctx.send(page, dest='author')
+                    await asyncio.sleep(.333)
+            else:
+                if hasattr(cmd, 'commands'):  # Command is a group. Display main help-like message.
+                    longest_cmd = sorted(cmd.commands, key=lambda x: len(x.name), reverse=True)[0].name
+                    commands = sorted(cmd.commands, key=lambda x: x.name)
+
+                    paginator.add_line(prefixes[0] + cmd.name, empty=True)
+                    paginator.add_line(cmd.description, empty=True)
+                    paginator.add_line('Commands:')
+
+                    for command in commands:
+                        spacing = ' ' * (len(longest_cmd) - len(command.name) + 1)
+                        line = f'  {command.name}{spacing}{command.short_description}'
+
+                        paginator.add_line(line)
+
+                    paginator.add_line('')
+
+                    if cmd.aliases:
+                        aliases = ', '.join(cmd.aliases)
+                        paginator.add_line(f'Aliases for this command are: {aliases}')
+
+                    paginator.add_line(f'Type {prefixes[0]}{cmd.name} command to run the command.')
+
+                    for page in paginator.pages:
+                        await ctx.send(page)
+                        await asyncio.sleep(.333)
+                else:
+                    paginator.add_line(prefixes[0] + cmd.name + ' ' + cmd.usage, empty=True)
+                    paginator.add_line(cmd.description)
+
+                    if cmd.aliases:
+                        aliases = ', '.join(cmd.aliases)
+
+                        paginator.add_line('')
+                        paginator.add_line(f'Aliases for this command are: {aliases}')
+
+                    for page in paginator.pages:
+                        await ctx.send(page)
+                        await asyncio.sleep(.333)
+        else:
+            parent = self.holder.get_command(ctx.cmd.split(' ')[0])
+            child = parent.all_commands.get(ctx.cmd.split(' ')[1])
+
+            if not child:
+                return await ctx.send('Unknown subcommand.')
+
+            paginator.add_line(prefixes[0] + ctx.cmd + ' ' + child.usage, empty=True)
+            paginator.add_line(child.description)
+
+            if child.aliases:
+                aliases = ', '.join(child.aliases)
+
+                paginator.add_line('')
+                paginator.add_line(f'Aliases for this command are: {aliases}')
+
+            for page in paginator.pages:
+                await ctx.send(page)
+                await asyncio.sleep(.333)
 
     async def on_ready(self):
         self.redis.set(
@@ -68,41 +190,43 @@ class Amethyst(commands.Bot):
         print(self.invite_url)
         print(self.user.name)
 
-        self.load_extension('modules.core')
+        self.holder.load_module('modules.core')
 
-    async def on_command_error(self, exception, context):
-        if isinstance(exception, commands_errors.MissingRequiredArgument):
-            await self.send_command_help(context)
-        elif isinstance(exception, commands_errors.CommandInvokeError):
-            exception = exception.original
-            _traceback = traceback.format_tb(exception.__traceback__)
-            _traceback = ''.join(_traceback)
-            error = ('`{0}` in command `{1}`: ```py\n'
-                     'Traceback (most recent call last):\n{2}{0}: {3}\n```')\
-                .format(type(exception).__name__,
-                        context.command.qualified_name,
-                        _traceback, exception)
-            await context.send(error)
-        elif isinstance(exception, commands_errors.CommandNotFound):
-            pass
+    async def handle_error(self, exception, ctx):
+        _traceback = traceback.format_tb(exception.__traceback__)
+        _traceback = ''.join(_traceback)
+        error = ('`{0}` in command `{1}`: ```py\n'
+                 'Traceback (most recent call last):\n{2}{0}: {3}\n```')\
+            .format(type(exception).__name__,
+                    ctx.cmd, _traceback,
+                    exception)
+
+        await ctx.send(error)
 
     async def on_message(self, message):
-        if message.author.bot:
+        if (not message.content or
+                message.author.bot or
+                message.author.id in self.settings['blacklist']):
             return
-        if message.author.id in self.settings['blacklist']:
+
+        cleaned = message_parsing.parse_prefixes(message.content, prefixes)
+
+        if (cleaned == message.content or
+                cleaned[0] in string.whitespace):
             return
-        await self.process_commands(message)
+
+        cmd = message_parsing.get_cmd(cleaned)
+
+        if not self.holder.get_command(cmd):
+            return
+
+        ctx = command_system.Context(message, self)
+
+        try:
+            await self.holder.run_command(ctx)
+        except Exception as e:
+            await self.handle_error(e, ctx)
 
 
-async def send_cmd_help(ctx):
-    if ctx.invoked_subcommand:
-        _help = await ctx.bot.formatter.format_help_for(ctx,
-                                                        ctx.invoked_subcommand)
-    else:
-        _help = await ctx.bot.formatter.format_help_for(ctx, ctx.command)
-    for page in _help:
-        await ctx.send(page)
-
-
-amethyst = Amethyst(prefix, args, redis_conn)
+amethyst = Amethyst(config, args, redis_conn)
 amethyst.run(token)

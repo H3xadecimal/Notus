@@ -5,5 +5,5 @@
     "AMETHYST_REDIS_PORT": 6379,
     "AMETHYST_REDIS_DB": 0,
     "AMETHYST_TOKEN": "TOKEN",
-    "AMETHYST_PREFIX": "test "
+    "AMETHYST_PREFIXES": ["test "]
 }

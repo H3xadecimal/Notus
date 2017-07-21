@@ -1,18 +1,19 @@
-import discord
-from discord.ext import commands
-import importlib
-import inspect
+from utils.command_system import command
 from utils import confirm
 from utils.dataIO import dataIO
+from utils.lookups import Lookups
+import discord
+import inspect
 
 
-class core:
+class Core:
     def __init__(self, amethyst):
         self.amethyst = amethyst
         self.firmware = "Stock Firmware: Compact 0.3"
         self.settings = dataIO.load_json('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
         self.owners_task = amethyst.loop.create_task(self.owners_configuration())
+        self.lookups = Lookups(amethyst)
 
     def __unload(self):
         self.post_task.cancel()
@@ -23,12 +24,13 @@ class core:
             self.settings['modules'] = []
         else:
             for module in self.settings['modules']:
-                if module not in list(self.amethyst.extensions):
+                if module not in self.amethyst.holder.all_modules:
                     try:
-                        self.amethyst.load_extension(module)
-                    except:
+                        self.amethyst.holder.load_module(module)
+                    except Exception as e:
                         self.settings['modules'].remove(module)
-                        print("A module blew up... Idk which tho.")
+                        print(f"Module `{module}` blew up.")
+                        print(e)
 
     async def owners_configuration(self):
         if 'owners' not in self.settings:
@@ -37,17 +39,36 @@ class core:
             self.settings['owners'].append(self.amethyst.owner)
         self.amethyst.owners = self.settings['owners']
 
-    @commands.command(aliases=['cog'])
+    @command(aliases=['commands'], usage='[command]')
+    async def help(self, ctx):
+        """Show help for all the commands."""
+        if not ctx.args:
+            try:
+                await self.amethyst.send_command_help(ctx)
+            except discord.Forbidden:
+                await ctx.send('Cannot send the help to you. Perhaps you have DMs blocked?')
+        else:
+            ctx.cmd = ctx.suffix
+            await self.amethyst.send_command_help(ctx)
+
+    @command(aliases=['cog'], usage='<module> [argument]')
     @confirm.instance_owner()
-    async def module(self, ctx, name: str, argument: str):
+    async def module(self, ctx):
         """Module management."""
-        module_name = 'modules.{0}'.format(name)
-        argumentlist = ["--load", "--unload", "--reload", None]
-        if argument == '--load' or None:
-            if module_name not in list(self.amethyst.extensions):
-                plugin = importlib.import_module(module_name)
-                importlib.reload(plugin)
-                self.amethyst.load_extension(plugin.__name__)
+        if not ctx.args:
+            return await ctx.send('Please specify a module to manange.')
+
+        argument_list = ["--load", "--unload", "--reload"]
+        module_name = 'modules.' + ctx.args[0].lower()
+
+        try:
+            argument = ctx.args[1]
+        except IndexError:
+            argument = '--load'
+
+        if argument == '--load':
+            if module_name not in self.amethyst.holder.all_modules:
+                self.amethyst.holder.load_module(module_name)
                 self.settings['modules'].append(module_name)
                 await ctx.send('Module loaded.')
             else:
@@ -55,10 +76,8 @@ class core:
                     'The module you are trying to load is already loaded.\n'
                     'Please use the `--reload` argument instead.')
         if argument == '--unload':
-            if module_name in list(self.amethyst.extensions):
-                plugin = importlib.import_module(module_name)
-                importlib.reload(plugin)
-                self.amethyst.unload_extension(plugin.__name__)
+            if module_name in self.amethyst.holder.all_modules:
+                self.amethyst.holder.unload_module(module_name)
                 self.settings['modules'].remove(module_name)
                 await ctx.send('Module unloaded.')
             else:
@@ -66,48 +85,46 @@ class core:
                     'The module you are trying to unload '
                     'could not be found or is not loaded.')
         if argument == '--reload':
-            if module_name in list(self.amethyst.extensions):
-                plugin = importlib.import_module(module_name)
-                importlib.reload(plugin)
-                self.amethyst.unload_extension(plugin.__name__)
-                self.amethyst.load_extension(plugin.__name__)
+            if module_name in self.amethyst.holder.all_modules:
+                self.amethyst.holder.reload_module(module_name)
                 await ctx.send('Module reloaded.')
             else:
                 await ctx.send(
                         'The module you are trying to reload is not loaded.\n'
                         'Please try the `--load` argument.')
-        if argument not in argumentlist:
+        if argument not in argument_list:
             await ctx.send(
                     "The argument you specified is invalid.\n"
                     "Please check the available arguments using"
                     " `[prefix]arguments`.")
 
-    @commands.command()
+    @command()
     async def arguments(self, ctx):
         """Lists all arguments."""
         await ctx.send(
-            "Arguments for Modules include: `--load, --unload & --reload`.")
+            "Arguments for modules include: `--load, --unload & --reload`.")
 
-    @commands.command(aliases=['debug'])
+    @command(aliases=['debug'], usage='<code>')
     @confirm.instance_owner()
-    async def eval(self, ctx, *, code: str):
+    async def eval(self, ctx):
         env = {
-            "message": ctx.message,
-            "author": ctx.message.author,
-            "channel": ctx.message.channel,
-            "guild": ctx.message.guild,
+            "message": ctx.msg,
+            "author": ctx.msg.author,
+            "channel": ctx.msg.channel,
+            "guild": ctx.msg.guild,
             "ctx": ctx,
             "discord": discord,
+            "lookups": self.lookups,
             "self": self.amethyst,
         }
 
-        output = eval(code, env)
+        output = eval(ctx.suffix, env)
         if inspect.isawaitable(output):
             output = await output
 
         await ctx.send('```py\n{0}\n```'.format(output))
 
-    @commands.command(aliases=['kys'])
+    @command(aliases=['kys'])
     @confirm.instance_owner()
     async def shutdown(self, ctx):
         """Shuts down the bot.... Duh."""
@@ -116,4 +133,4 @@ class core:
 
 
 def setup(amethyst):
-    amethyst.add_cog(core(amethyst))
+    return Core(amethyst)

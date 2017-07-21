@@ -1,12 +1,10 @@
 pipeline {
-    agent any
-    stages {
-        stage('Resolve dependencies') {
-            steps {
-                sh 'git clone https://github.com/Rapptz/discord.py --branch rewrite'
-                sh 'mv discord.py/discord discord'
-            }
+    agent {
+        docker {
+            image 'chinodesuuu/ci-amethyst'
         }
+    }
+    stages {
         stage('Test') {
             steps {
                 sh 'cloc --exclude-dir=discord --exclude-dir=discord.py .'
@@ -17,7 +15,7 @@ pipeline {
     }
     post {
         always {
-            deleteDir()
+            sh 'rm -rf * | true'
         }
     }
 }

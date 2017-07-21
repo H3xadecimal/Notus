@@ -1,231 +1,181 @@
-import discord
 import asyncio
+import re
 
 
 class BadResponseException(Exception):
-    pass
+    def __bool__(self):
+        return False
 
 
 class Lookups:
     def __init__(self, amethyst):
         self.amethyst = amethyst
 
-    async def __prompt__(self, ctx, what, what_list, type):
+    async def __prompt__(self, ctx, what, what_list, type, *, suppress_error_msgs=False):
         if type == 'members':
             what_list = [(x.name, x.discriminator, x.id) for x in what_list][:10]
             format_list = ['{0}. {1[0]}#{1[1]}'.format(what_list.index(x) + 1, x) for x in what_list]
-            msg = '''```py
->>> Multiple users found matching '{0}'.
->>> Select the wanted user by typing their corresponding number.
->>> If you cannot find the user you want, try refining your search.
+        elif type in ['channels', 'roles', 'guilds']:
+            what_list = [(x.name, x.id) for x in what_list][:10]
+            format_list = ['{}. {}'.format(what_list.index(x) + 1, x[0]) for x in what_list]
+        else:
+            raise TypeError('Unknown type `{}`'.format(type))
 
-{1}
-```'''.format(what, '\n'.join(format_list))
+        msg = '''```py
+>>> Multiple {0} found matching '{1}'.
+>>> Select the wanted {2} by typing their corresponding number.
+>>> If you cannot find the {2} you want, try refining your search.
 
-            delet = await ctx.send(msg)
-            try:
-                msg = await self.amethyst.wait_for('message',
-                                                   check=lambda m: m.author.id == ctx.message.author.id,
-                                                   timeout=15)
-                choice = int(msg.content)
+{3}
+```'''.format(type.capitalize(), what, type[:-1], '\n'.join(format_list))
 
-                if choice == 0 or choice > len(format_list):
-                    await ctx.send('Choice index out of range (0 or larger than {}).'.format(len(format_list) + 1))
-                    return BadResponseException()
-                elif isinstance(ctx.message.channel, discord.DMChannel):
+        delet = await ctx.send(msg)
+        try:
+            msg = await self.amethyst.wait_for('message',
+                                               check=lambda m: m.author.id == ctx.msg.author.id,
+                                               timeout=15)
+            choice = int(msg.content)
+
+            if choice < 0 or choice > len(format_list):
+                if not suppress_error_msgs:
+                    await ctx.send('Choice is either too large or too small.')
+                return BadResponseException()
+
+            if type == 'members':
+                if ctx.is_dm():
                     choice = [u for u in self.amethyst.users if u.id == what_list[choice - 1][2]][0]
                 else:
-                    choice = [m for m in ctx.guild.members if m.id == what_list[choice - 1][2]][0]
+                    choice = [m for m in ctx.msg.guild.members if m.id == what_list[choice - 1][2]][0]
+            elif type == 'channels':
+                choice = [c for c in ctx.msg.guild.channel if c.id == what_list[choice - 1][1]][0]
+            elif type == 'guilds':
+                choice = [g for g in self.amethyst.guilds if g.id == what_list[choice - 1][1]][0]
+            elif type == 'roles':
+                choice = [r for r in ctx.msg.guild.roles if r.id == what_list[choice - 1][1]][0]
+            else:
+                raise TypeError('Unknown type `{}`'.format(type))
 
-                await delet.delete()
-                return choice
-            except asyncio.TimeoutError:
+            await delet.delete()
+            return choice
+        except asyncio.TimeoutError:
+            await delet.delete()
+
+            if not suppress_error_msgs:
                 await ctx.send('Choice timed out.')
-                return BadResponseException()
-            except ValueError:
+
+            return BadResponseException()
+        except ValueError:
+            await delet.delete()
+
+            if not suppress_error_msgs:
                 await ctx.send('Invalid choice (Full number required).')
-                return BadResponseException()
-        elif type == 'channels':
-            what_list = [(x.name, x.id) for x in what_list][:10]
-            format_list = ['{0}. {1}'.format(what_list.index(x) + 1, x[0]) for x in what_list]
-            msg = '''```py
->>> Multiple channels found matching '{0}'.
->>> Select the wanted channel by typing its corresponding number.
->>> If you cannot find the channel you want, try refining your search.
 
-{1}
-```'''.format(what, '\n'.join(format_list))
+            return BadResponseException()
 
-            delet = await ctx.send(msg)
-            try:
-                msg = await self.amethyst.wait_for('message',
-                                                   check=lambda m: m.author.id == ctx.message.author.id,
-                                                   timeout=15)
-                choice = int(msg.content)
-
-                if choice == 0 or choice > len(format_list):
-                    await ctx.send('Choice index out of range (0 or larger than {}).'.format(len(format_list) + 1))
-                    return BadResponseException()
-                else:
-                    choice = [c for c in ctx.guild.channels if c.id == what_list[choice - 1][1]][0]
-
-                await delet.delete()
-                return choice
-            except asyncio.TimeoutError:
-                await ctx.send('Choice timed out.')
-                return BadResponseException()
-            except ValueError:
-                await ctx.send('Invalid choice (Full number required).')
-                return BadResponseException()
-        elif type == 'guilds':
-            what_list = [(x.name, x.id) for x in what_list][:10]
-            format_list = ['{0}. {1}'.format(what_list.index(x) + 1, x[0]) for x in what_list]
-            msg = '''```py
->>> Multiple servers found matching '{0}'.
->>> Select the wanted server by typing its corresponding number.
->>> If you cannot find the server you want, try refining your search.
-
-{1}
-```'''.format(what, '\n'.join(format_list))
-
-            delet = await ctx.send(msg)
-            try:
-                msg = await self.amethyst.wait_for('message',
-                                                   check=lambda m: m.author.id == ctx.message.author.id,
-                                                   timeout=15)
-                choice = int(msg.content)
-
-                if choice == 0 or choice > len(format_list):
-                    await ctx.send('Choice index out of range (0 or larger than {}).'.format(len(format_list) + 1))
-                    return BadResponseException()
-                else:
-                    choice = [g for g in self.amethyst.guilds if g.id == what_list[choice - 1][1]][0]
-
-                await delet.delete()
-                return choice
-            except asyncio.TimeoutError:
-                await ctx.send('Choice timed out.')
-                return BadResponseException()
-            except ValueError:
-                await ctx.send('Invalid choice (Full number required).')
-                return BadResponseException()
-        elif type == 'roles':
-            what_list = [(x.name, x.id) for x in what_list]
-            format_list = ['{0}. {1}'.format(what_list.index(x) + 1, x[0]) for x in what_list][:10]
-            msg = '''```py
->>> Multiple roles found matching '{0}'.
->>> Select the wanted role by typing its corresponding number.
->>> If you cannot find the role you want, try refining your search.
-
-{1}
-```'''.format(what, '\n'.join(format_list))
-
-            delet = await ctx.send(msg)
-            try:
-                msg = await self.amethyst.wait_for('message',
-                                                   check=lambda m: m.author.id == ctx.message.author.id,
-                                                   timeout=15)
-                choice = int(msg.content)
-
-                if choice == 0 or choice > len(format_list):
-                    await ctx.send('Choice index out of range (0 or larger than {}).'.format(len(format_list) + 1))
-                    return BadResponseException()
-                else:
-                    choice = [r for r in ctx.guild.roles if r.id == what_list[choice - 1][1]][0]
-
-                await delet.delete()
-                return choice
-            except asyncio.TimeoutError:
-                await ctx.send('Choice timed out.')
-                return BadResponseException()
-            except ValueError:
-                await ctx.send('Invalid choice (Full number required).')
-                return BadResponseException()
-        else:
-            raise TypeError('Invalid type {0}'.format(type))
-
-    async def member_lookup(self, ctx, who, not_found_msg=True):
+    async def member_lookup(self, ctx, who, *, not_found_msg=True, suppress_error_msgs=False):
         member = None
 
-        if len(ctx.message.mentions) > 0:
-            member = ctx.message.mentions[0]
+        if re.match(r'<@!?\d+>', who):
+            id = int(re.match(r'<@!?(\d+)>', who)[1])
+
+            if ctx.is_dm():
+                return self.amethyst.get_user(id)
+            else:
+                member = [m for m in ctx.msg.guild.members if m.id == id]
+
+                if member:
+                    return member[0]
+                else:
+                    return None
         else:
-            if isinstance(ctx.message.channel, discord.DMChannel):
-                members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
+            if ctx.is_dm():
+                if re.match(r'^\d+$', who) and len(who) != 4:
+                    members = [u for u in self.amethyst.users if who in str(u.id) or who in u.name]
+                elif re.match(r'^\d+$', who) and len(who) == 4:
+                    members = [u for u in self.amethyst.users if who == u.discriminator]
+                else:
+                    members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
 
                 if len(members) > 1:
-                    member = await self.__prompt__(ctx, who, members, 'members')
+                    member = await self.__prompt__(ctx, who, members,
+                                                   'members', suppress_error_msgs=suppress_error_msgs)
                 elif len(members) == 1:
                     member = members[0]
                 else:
-                    if not_found_msg:
+                    if not_found_msg or not suppress_error_msgs:
                         await ctx.send('User not found.')
                         member = BadResponseException()
 
                 return member
             else:
-                members = [m for m in ctx.guild.members if who.lower() in m.name.lower() or
-                           (m.nick and who.lower() in m.nick.lower())]
+                if re.match(r'^\d+$', who) and len(who) != 4:
+                    members = [m for m in ctx.msg.guild.members if who in str(m.id) or who in m.name]
+                elif re.match(r'^\d+$', who) and len(who) == 4:
+                    members = [m for m in ctx.msg.guild.members if who == m.discriminator]
+                else:
+                    members = [m for m in ctx.msg.guild.members if who.lower() in m.name.lower() or
+                               (m.nick and who.lower() in m.nick.lower())]
 
                 if len(members) > 1:
                     member = await self.__prompt__(ctx, who, members, 'members')
                 elif len(members) == 1:
                     member = members[0]
                 else:
-                    if not_found_msg:
+                    if not_found_msg or not suppress_error_msgs:
                         await ctx.send('User not found.')
                         member = BadResponseException()
 
                 return member
 
-    async def channel_lookup(self, ctx, what, not_found_msg=True):
-        if isinstance(ctx.message.channel, discord.DMChannel):
+    async def channel_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
+        if ctx.is_dm():
             await ctx.send('Channels cannot be looked up in DMs.')
             return BadResponseException()
         else:
             channel = None
-            channels = [c for c in ctx.guild.channels if what.lower() in c.name.lower()]
+            channels = [c for c in ctx.msg.guild.channels if what.lower() in c.name.lower()]
 
             if len(channels) > 1:
-                channel = await self.__prompt__(ctx, what, channels, 'channels')
+                channel = await self.__prompt__(ctx, what, channels,
+                                                'channels', suppress_error_msgs=suppress_error_msgs)
             elif len(channels) == 1:
                 channel = channels[0]
             else:
-                if not_found_msg:
+                if not_found_msg or suppress_error_msgs:
                     await ctx.send('Channel not found.')
                     channel = BadResponseException()
 
             return channel
 
-    async def role_lookup(self, ctx, what, not_found_msg=True):
-        if isinstance(ctx.message.channel, discord.DMChannel):
+    async def role_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
+        if ctx.is_dm():
             await ctx.send('Roles cannot be looked up in DMs.')
             return BadResponseException()
         else:
             role = None
-            roles = [r for r in ctx.guild.roles if what.lower() in r.name.lower()]
+            roles = [r for r in ctx.msg.guild.roles if what.lower() in r.name.lower()]
 
             if len(roles) > 1:
-                role = await self.__prompt__(ctx, what, roles, 'roles')
+                role = await self.__prompt__(ctx, what, roles, 'roles', suppress_error_msgs=suppress_error_msgs)
             elif len(roles) == 1:
                 role = roles[0]
             else:
-                if not_found_msg:
+                if not_found_msg or suppress_error_msgs:
                     await ctx.send('Role not found.')
                     role = BadResponseException()
 
             return role
 
-    async def guild_lookup(self, ctx, what, not_found_msg=True):
+    async def guild_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
         guild = None
         guilds = [g for g in self.amethyst.guilds if what.lower() in g.name.lower()]
 
         if len(guilds) > 1:
-            guild = await self.__prompt__(ctx, what, guilds, 'guilds')
+            guild = await self.__prompt__(ctx, what, guilds, 'guilds', suppress_error_msgs=suppress_error_msgs)
         elif len(guilds) == 1:
             guild = guilds[0]
         else:
-            if not_found_msg:
+            if not_found_msg or suppress_error_msgs:
                 await ctx.send('Server not found.')
                 guild = BadResponseException()
 

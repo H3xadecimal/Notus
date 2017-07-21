@@ -1,34 +1,38 @@
+from utils.command_system import command, group
+from utils import confirm, lookups
+from utils.dataIO import dataIO
 import discord
 import asyncio
 import aiohttp
 import mimetypes
-from discord.ext import commands
-from utils import confirm
-from utils.dataIO import dataIO
 
 
-class utilities:
+class Utilities:
     def __init__(self, amethyst):
         self.amethyst = amethyst
         self.settings = dataIO.load_json('settings')
+        self.lookups = lookups.Lookups(amethyst)
 
-    @commands.command()
+    @command()
     async def ping(self, ctx):
         """Pong."""
         await ctx.send("Pong.")
 
-    @commands.group(name="set", invoke_without_command=True)
+    @group(name="set")
     @confirm.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
         await self.amethyst.send_command_help(ctx)
 
-    @utils_set.command(name="nickname")
-    async def utils_set_nickname(self, ctx, *, name: str=None):
-        """Sets Bot nickname."""
+    @utils_set.command(name="nickname", aliases=['nick'], usage="<name>")
+    async def utils_set_nickname(self, ctx):
+        """Sets bot nickname."""
+        if not ctx.args:
+            return await self.amethyst.send_command_help(ctx)
+
         try:
-            if len(str(name)) < 32:
-                await ctx.guild.me.edit(nick=name)
+            if len(ctx.suffix) < 32:
+                await ctx.msg.guild.me.edit(nick=ctx.suffix)
                 await ctx.send("Beep Boop. Done.")
             else:
                 await ctx.send(
@@ -37,41 +41,54 @@ class utilities:
             await ctx.send("Error changing nickname, either "
                            "`Lacking Permissions` or `Something Blew Up`.")
 
-    @utils_set.command(name="game")
-    async def utils_set_game(self, ctx, *, game: str=None):
+    @utils_set.command(name="game", usage='[game]')
+    async def utils_set_game(self, ctx):
         """Sets Bot's playing status."""
-        if game is not None:
-            await self.amethyst.change_presence(game=discord.Game(name=game))
+        if ctx.args:
+            await self.amethyst.change_presence(game=discord.Game(name=ctx.suffix))
             await ctx.send("Done.")
         else:
             await self.amethyst.change_presence(game=None)
             await ctx.send("Done.")
 
-    @utils_set.command(name="status")
-    async def utils_set_status(self, ctx, status: str):
+    @utils_set.command(name="status", usage='[game]')
+    async def utils_set_status(self, ctx):
         """Sets bot presence."""
-        status = getattr(discord.Status, status, discord.Status.online)
+        if ctx.args:
+            status = getattr(discord.Status, ctx.args[0], discord.Status.online)
+        else:
+            status = discord.Status.online
+
         await self.amethyst.change_presence(status=status)
         await ctx.send("Changed status!")
 
-    @utils_set.command(name="owner")
-    async def utils_set_owner(self, ctx, *owners: discord.Member):
+    @utils_set.command(name="owner", aliases=['owners'], usage='<owners: multiple>')
+    async def utils_set_owner(self, ctx):
         """Sets other owners."""
-        self.settings['owners'] = [str(x.id) for x in list(owners)]
-        if len(list(owners)) == 1:
-            await ctx.send('Owner set.')
-        else:
-            await ctx.send('Owners set.')
+        if not ctx.args:
+            return await self.amethyst.send_command_help(ctx)
 
-    @utils_set.command(name="avatar")
-    async def utils_set_avatar(self, ctx, url: str=None):
-        """ Changes the bots avatar """
-        if url is None:
-            if not ctx.message.attachments:
-                return await ctx.say("No avatar found! "
-                                     "Provide an Url or Attachment!")
+        owners = [await self.lookups.member_lookup(ctx, arg) for arg in ctx.args]
+        owners = [str(x.id) for x in owners if isinstance(x, discord.Member)]
+        self.settings['owners'] += owners
+
+        if len(owners) == 1:
+            await ctx.send('Added owner.')
+        else:
+            await ctx.send('Added owners.')
+
+    @utils_set.command(name="avatar", usage='<url>')
+    async def utils_set_avatar(self, ctx):
+        """Changes the bots avatar"""
+        if not ctx.args:
+            if not ctx.msg.attachments:
+                return await ctx.send("No avatar found! "
+                                      "Provide an Url or Attachment!")
             else:
-                url = ctx.message.attachments[0].get("url")
+                url = ctx.msg.attachments[0].get("url")
+
+        if not url:
+            url = ctx.suffix
 
         ext = url.split(".")[-1]
         mime = mimetypes.types_map.get(ext)
@@ -93,15 +110,23 @@ class utilities:
 
         await ctx.send("Successfully updated avatar!")
 
-    @commands.group(name="blacklist", invoke_without_command=True)
+    @group(name="blacklist")
     @confirm.instance_owner()
     async def blacklist_commands(self, ctx):
         """Prevents a user from using the bot globally."""
         await self.amethyst.send_command_help(ctx)
 
-    @blacklist_commands.command(name="add")
-    async def add_blacklist(self, ctx, user: discord.Member):
+    @blacklist_commands.command(name="add", usage='<user>')
+    async def add_blacklist(self, ctx):
         """Adds a user to blacklist."""
+        if not ctx.args:
+            await self.amethyst.send_command_help(ctx)
+
+        user = await self.lookups.member_lookup(ctx, ctx.suffix)
+
+        if isinstance(user, lookups.BadResponseException):
+            return
+
         if user.id not in self.settings['blacklist']:
             try:
                 self.settings['blacklist'].append(user.id)
@@ -111,25 +136,35 @@ class utilities:
         else:
             await ctx.send("User already blacklisted.")
 
-    @blacklist_commands.command(name="remove")
-    async def remove_blacklist(self, ctx, user: discord.Member):
+    @blacklist_commands.command(name="remove", usage='<user>')
+    async def remove_blacklist(self, ctx, user):
         """Removes a user from blacklist."""
+        if not ctx.args:
+            # I should probably end up making this automatic if the command doesn't
+            # have all of its required args filled.
+            await self.amethyst.send_command_help(ctx)
+
+        user = await self.lookups.member_lookup(ctx, ctx.suffix)
+
+        if isinstance(user, lookups.BadResponseException):
+            return
+
         if user.id not in self.settings['blacklist']:
             await ctx.send("User is not blacklisted.")
         else:
             self.settings['blacklist'].remove(user.id)
             await ctx.send("User removed from blacklist.")
 
-    @commands.command(aliases=['clean'])
+    @command(aliases=['clean'])
+    @confirm.instance_guild()
     async def cleanup(self, ctx):
         """Cleans up the bot's messages."""
-        msgs = await ctx.message.channel.history(limit=100).flatten()
+        msgs = await ctx.msg.channel.history(limit=100).flatten()
         msgs = [msg for msg in msgs if msg.author.id == self.amethyst.user.id]
 
-        if (len(msgs) > 0 and
-                ctx.me.permissions_in(ctx.channel).manage_messages):
-            await ctx.channel.delete_messages(msgs)
-        elif len(msgs) > 0:
+        if msgs and ctx.has_permission('manage_messages'):
+            await ctx.msg.channel.delete_messages(msgs)
+        elif msgs:
             for msg in msgs:
                 await msg.delete()
         else:
@@ -141,4 +176,4 @@ class utilities:
 
 
 def setup(amethyst):
-    amethyst.add_cog(utilities(amethyst))
+    return Utilities(amethyst)
