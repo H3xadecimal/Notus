@@ -1,5 +1,6 @@
 import asyncio
 import re
+import discord
 
 
 class BadResponseException(Exception):
@@ -43,11 +44,11 @@ class Lookups:
 
             if type == 'members':
                 if ctx.is_dm():
-                    choice = [u for u in self.amethyst.users if u.id == what_list[choice - 1][2]][0]
+                    choice = [u for u in self.amethyst.get_all_members() if u.id == what_list[choice - 1][2]][0]
                 else:
                     choice = [m for m in ctx.msg.guild.members if m.id == what_list[choice - 1][2]][0]
             elif type == 'channels':
-                choice = [c for c in ctx.msg.guild.channel if c.id == what_list[choice - 1][1]][0]
+                choice = [c for c in ctx.msg.guild.channels if c.id == what_list[choice - 1][1]][0]
             elif type == 'guilds':
                 choice = [g for g in self.amethyst.guilds if g.id == what_list[choice - 1][1]][0]
             elif type == 'roles':
@@ -79,6 +80,13 @@ class Lookups:
             id = int(re.match(r'<@!?(\d+)>', who)[1])
 
             if ctx.is_dm():
+                member = [m for m in self.amethyst.get_all_members() if m.id == id]
+
+                if member:
+                    return member[0]
+                else:
+                    return None
+
                 return self.amethyst.get_user(id)
             else:
                 member = [m for m in ctx.msg.guild.members if m.id == id]
@@ -90,11 +98,11 @@ class Lookups:
         else:
             if ctx.is_dm():
                 if re.match(r'^\d+$', who) and len(who) != 4:
-                    members = [u for u in self.amethyst.users if who in str(u.id) or who in u.name]
+                    members = [u for u in self.amethyst.get_all_members() if who in str(u.id) or who in u.name]
                 elif re.match(r'^\d+$', who) and len(who) == 4:
-                    members = [u for u in self.amethyst.users if who == u.discriminator]
+                    members = [u for u in self.amethyst.get_all_members() if who == u.discriminator]
                 else:
-                    members = [u for u in self.amethyst.users if who.lower() in u.name.lower()]
+                    members = [u for u in self.amethyst.get_all_members() if who.lower() in u.name.lower()]
 
                 if len(members) > 1:
                     member = await self.__prompt__(ctx, who, members,
@@ -102,7 +110,7 @@ class Lookups:
                 elif len(members) == 1:
                     member = members[0]
                 else:
-                    if not_found_msg or not suppress_error_msgs:
+                    if not_found_msg:
                         await ctx.send('User not found.')
                         member = BadResponseException()
 
@@ -121,31 +129,44 @@ class Lookups:
                 elif len(members) == 1:
                     member = members[0]
                 else:
-                    if not_found_msg or not suppress_error_msgs:
+                    if not_found_msg:
                         await ctx.send('User not found.')
                         member = BadResponseException()
 
                 return member
 
-    async def channel_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
+    async def channel_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False, voice_only=False):
         if ctx.is_dm():
             await ctx.send('Channels cannot be looked up in DMs.')
-            return BadResponseException()
-        else:
-            channel = None
-            channels = [c for c in ctx.msg.guild.channels if what.lower() in c.name.lower()]
+            return BadResponseException() 
 
-            if len(channels) > 1:
-                channel = await self.__prompt__(ctx, what, channels,
-                                                'channels', suppress_error_msgs=suppress_error_msgs)
-            elif len(channels) == 1:
-                channel = channels[0]
+        channel = None
+
+        if re.match(r'<@!?\d+>', what):
+            id = int(re.match(r'<@!?(\d+)>', what)[1])
+            channel = [c for c in ctx.msg.guild.channels if c.id == id]
+
+            if channel:
+                return channel[0]
             else:
-                if not_found_msg or suppress_error_msgs:
-                    await ctx.send('Channel not found.')
-                    channel = BadResponseException()
+                return None
 
-            return channel
+        if voice_only:
+            channels = [c for c in ctx.msg.guild.channels if (what.lower() in c.name.lower() or what in str(c.id)) and
+                        isinstance(c, discord.VoiceChannel)]
+        else:
+            channels = [c for c in ctx.msg.guild.channels if what.lower() in c.name.lower() or what in str(c.id)]
+
+        if len(channels) > 1:
+            channel = await self.__prompt__(ctx, what, channels, 'channels', suppress_error_msgs=suppress_error_msgs)
+        elif len(channels) == 1:
+            channel = channels[0]
+        else:
+            if not_found_msg:
+                await ctx.send('Channel not found.')
+                channel = BadResponseException()
+
+        return channel
 
     async def role_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False):
         if ctx.is_dm():
@@ -160,7 +181,7 @@ class Lookups:
             elif len(roles) == 1:
                 role = roles[0]
             else:
-                if not_found_msg or suppress_error_msgs:
+                if not_found_msg:
                     await ctx.send('Role not found.')
                     role = BadResponseException()
 
@@ -175,7 +196,7 @@ class Lookups:
         elif len(guilds) == 1:
             guild = guilds[0]
         else:
-            if not_found_msg or suppress_error_msgs:
+            if not_found_msg:
                 await ctx.send('Server not found.')
                 guild = BadResponseException()
 

@@ -2,6 +2,7 @@ from discord import utils as dutils
 from discord.ext.commands import Paginator
 from utils.dataIO import dataIO
 from utils import command_system, message_parsing
+import utils.arg_converters as arg_converters
 import traceback
 import redis
 import argparse
@@ -68,6 +69,7 @@ class Amethyst(discord.Client):
         self.settings = dataIO.load_json('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
         self.holder = command_system.CommandHolder(self)
+        self.converters = arg_converters.Converters(self)
         self.session = aiohttp.ClientSession()
 
     async def blacklist_check(self):

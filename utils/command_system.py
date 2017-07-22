@@ -1,5 +1,6 @@
-from typing import Callable, List, Union, Set
+from typing import Callable, List, Union, Set, Tuple
 from utils import message_parsing
+from utils.arg_converters import InvalidArg
 import discord
 import inspect
 import re
@@ -101,7 +102,7 @@ class Context:
         return msg
 
     def is_dm(self):
-        '''Checks if the channel for the context is a DM or not.'''
+        '''Check if the channel for the context is a DM or not.'''
         return isinstance(self.msg.channel, discord.DMChannel)
 
     def has_permission(self, permission, who='self'):
@@ -118,6 +119,7 @@ class Context:
             return getattr(self.msg.channel.permissions_for(self.msg.author), permission)
 
     def typing(self):
+        """d.py `async with` shortcut for sending typing to a channel."""
         return ContextTyping(self)
 
 
@@ -125,7 +127,7 @@ class Command:
     '''Represents a command.'''
     def __init__(self, func: Callable[..., None],
                  *, name: str=None, description: str = '',
-                 aliases: list = [], usage: str = '',):
+                 aliases: list = [], usage: str = ''):
         self.func = func
         self.name = name or func.__name__
         self.description = description or inspect.cleandoc(func.__doc__ or '')
@@ -135,13 +137,30 @@ class Command:
         self.cls = None
         self.checks = func._checks if '_checks' in dir(func) else []
 
+        if '_hidden' in dir(func):
+            self.hidden = func._hidden
+
     def __repr__(self) -> str:
         return self.name
 
     async def run(self, ctx: Context) -> None:
-        '''Runs a command, taking into account the checks for the command.'''
+        '''
+        Runs a command, taking into account the checks for the command.
+        This will also automatically convert arguments if the command has need for it.
+        '''
         if not self.checks:
-            await self.func(self.cls, ctx)
+            sig = inspect.signature(self.func).parameters
+
+            if len(sig) == 2:
+                await self.func(self.cls, ctx)
+            else:
+                args, kwargs = await self.process_extra_args(ctx)
+
+                # Processing arguments most likely failed. Return so that the command doesn't get triggered.
+                if not args and not kwargs:
+                    return
+
+                await self.func(self.cls, ctx, *args, **kwargs)
         else:
             can_run = True
 
@@ -156,7 +175,142 @@ class Command:
                     break
 
             if can_run:
-                await self.func(self.cls, ctx)
+                sig = inspect.signature(self.func).parameters
+
+                if len(sig) == 2:
+                    await self.func(self.cls, ctx)
+                else:
+                    args, kwargs = await self.process_extra_args(ctx)
+
+                    # Processing arguments most likely failed. Return so that the command doesn't get triggered.
+                    if not args and not kwargs:
+                        return
+
+                    await self.func(self.cls, ctx, *args, **kwargs)
+
+    async def process_extra_args(self, ctx: Context) -> Tuple[list, dict]:
+        """
+        Processes extra arguments for commands that need them, obeying types and defaults.
+        Any arguments that do not have a type hint will be defaulted to `str`.
+
+        Should work for commands like this:
+            async def command(self, ctx, *foo: int)
+            async def command(self, ctx, *, kw_arg_one: discord.Member, kw_arg_two: int=None, etc)
+            async def command(self, ctx, *bunch_of_numbers: int, kw_arg_one: discord.Channel, kw_arg_two: whatever)
+
+        Probably best to not use this by itself unless you know what you're doing.
+        """
+        func_args = list(inspect.signature(self.func).parameters.items())[2:]  # Get all extra args from func.
+        varargs = []
+        kwargs = {}
+        amethyst = self.cls.amethyst
+
+        # Logic for if there is a vararg parameter (eg. *args)
+        if func_args[0][1].kind == inspect.Parameter.VAR_POSITIONAL:
+            # Get kwargs without the vararg and vice-versa
+            kw_args = func_args[1:]
+            var_args = func_args[0][1]
+            # Get last n args as the kwargs, with the rest being used for varargs
+            if kw_args:
+                ctx_kw_args = ctx.args[-len(kw_args):]
+                ctx_var_args = ctx.args[:-len(kw_args)]
+            else:
+                ctx_var_args = ctx.args
+            # Get wanted type from annotation, otherwise default to str
+            var_arg_cls = var_args.annotation if var_args.annotation is not inspect.Parameter.empty else str
+
+            # Convert varargs
+            for arg in ctx_var_args:
+                arg = await amethyst.converters.convert_arg(ctx, arg, var_arg_cls)
+
+                varargs.append(arg)
+
+            # Convert kwargs
+            if kw_args:
+                for arg in ctx_kw_args:
+                    i = ctx_kw_args.index(arg)
+                    kw_arg = kw_args[i][1]
+                    arg_cls = kw_arg.annotation if kw_arg.annotation is not inspect.Parameter.empty else str
+
+                    arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
+
+                    kwargs[kw_args[i][0]] = arg
+        else:
+            ctx_kw_args = ctx.args[:len(func_args)]
+
+            for arg in ctx_kw_args:
+                i = ctx_kw_args.index(arg)
+                kw_arg = func_args[i][1]
+                arg_cls = kw_arg.annotation if kw_arg.annotation is not inspect.Parameter.empty else str
+
+                arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
+
+                kwargs[func_args[i][0]] = arg
+
+        # If the first argument is a vararg, and it doesn't have a default, and it has an annotation,
+        # handle invalid arguments  # HAHA FUCK YOU PEP8 LET ME HAVE LONG ASS COMMENTS
+        if (func_args[0][1].kind == inspect.Parameter.VAR_POSITIONAL and
+                func_args[0][1].default is inspect.Parameter.empty and
+                func_args[0][1].annotation is not inspect.Parameter.empty):
+            expected_type = func_args[0][1].annotation
+            # Get any invalid varargs
+            invalid_type_varargs = [x for x in varargs if not isinstance(x, expected_type)]
+
+            if not varargs or invalid_type_varargs:
+                invalid_msg = amethyst.converters.arg_complaints[expected_type]
+
+                await ctx.send(invalid_msg)
+
+                return [], {}
+
+        # Ditto for kwargs
+        if kwargs:
+            all_kw_args = [x for x in func_args if x[1].kind == inspect.Parameter.KEYWORD_ONLY]
+
+            if len(kwargs) == len(all_kw_args):
+                first_invalid = None
+
+                for arg in all_kw_args:
+                    if arg[1].annotation is inspect.Parameter.empty:
+                        continue
+
+                    i = all_kw_args.index(arg)
+
+                    if not isinstance(list(kwargs.items())[i][1], arg[1].annotation):
+                        first_invalid = i
+                        break
+
+                if first_invalid is not None:
+                    user_arg = list(kwargs.items())[i]
+                    wanted_type = all_kw_args[i].annotation
+
+                    if isinstance(user_arg[1], InvalidArg):
+                        await ctx.send(f'Error for argument `{user_arg[0]}` for command `{ctx.cmd}`:\n{user_arg[1]}')
+
+                        return [], {}
+                    else:
+                        invalid_msg = amethyst.converters.arg_complaints[wanted_type]
+
+                        await ctx.send(f'Error for argument `{user_arg[0]}` for command `{ctx.cmd}`:\n{invalid_msg}')
+
+                        return [], {}
+            else:
+                missing_args = all_kw_args[len(kwargs):]
+                missing_arg = None
+
+                for arg in missing_args:
+                    if arg[1].default is inspect.Parameter.empty:
+                        missing_arg = arg
+                        break
+
+                if missing_arg is None:
+                    return varargs, kwargs
+                else:
+                    await ctx.send(f'Missing argument `{missing_arg[1].name}`.')
+
+                    return [], {}
+
+        return varargs, kwargs
 
 
 class CommandGroup(Command):
@@ -173,7 +327,7 @@ class CommandGroup(Command):
     def add_command(self, cmd):
         '''
         Adds a command to the group.
-        You should use the command decorator.
+        You should use the command decorator for ease-of-use.
         '''
         if not isinstance(cmd, Command):
             raise TypeError("Passed command isn't a Command instance.")
@@ -193,10 +347,21 @@ class CommandGroup(Command):
     async def run(self, ctx: Context) -> None:
         '''
         Runs the main command, or a subcommand, taking into account the group's checks, and the subcommand's checks.
+        This will automatically convert any extra arguments for itself or a subcommand
         '''
         if not ctx.args or ctx.args[0] not in self.all_commands:
             if not self.checks:
-                await self.func(self.cls, ctx)
+                sig = inspect.signature(self.func).parameters
+
+                if len(sig) == 2:
+                    await self.func(self.cls, ctx)
+                else:
+                    args, kwargs = await self.process_extra_args(ctx)
+
+                    if not args and not kwargs:
+                        return
+
+                    await self.func(self.cls, ctx, *args, **kwargs)
             else:
                 can_run = True
 
@@ -211,7 +376,17 @@ class CommandGroup(Command):
                         break
 
                 if can_run:
-                    await self.func(self.cls, ctx)
+                    sig = inspect.signature(self.func).parameters
+
+                    if len(sig) == 2:
+                        await self.func(self.cls, ctx)
+                    else:
+                        args, kwargs = await self.process_extra_args(ctx)
+
+                        if not args and not kwargs:
+                            return
+
+                        await self.func(self.cls, ctx, *args, **kwargs)
         else:
             cmd = self.all_commands[ctx.args[0]]
             ctx.suffix = ctx.suffix.split(' ', 1)[1:]
@@ -326,9 +501,6 @@ class CommandHolder:
         if module_name not in self.modules:
             raise Exception(f'Module `{module_name}` is not loaded.')
 
-        if hasattr(self.get_command(self.modules[module_name][0]).cls, '__unload'):
-            self.get_command(self.modules[module_name][0]).cls.__unload()
-
         for cmd in self.modules[module_name]:
             if cmd in self.aliases:
                 del self.aliases[cmd]
@@ -432,19 +604,34 @@ def group(**attrs):
 
 
 # Command checker convertor for decorators
-def check(checker):
+def check(checker, hide=False):
     def decorator(func):
         if isinstance(func, Command):
             func.checks.append(checker)
+
+            if 'hidden' not in dir(func):
+                func.hidden = hide
         else:
             if '_checks' not in dir(func):
                 func._checks = []
 
             func._checks.append(checker)
 
+            if '_hidden' not in dir(func):
+                func._hidden = hide
+
         return func
 
     return decorator
+
+
+# Command hider decorator
+def hidden():
+    def decorator(func):
+        if isinstance(func, Command):
+            func.hidden = True
+        else:
+            func._hidden = True
 
 
 # Some callback for typing
