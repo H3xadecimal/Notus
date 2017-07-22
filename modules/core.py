@@ -4,6 +4,7 @@ from utils.dataIO import dataIO
 from utils.lookups import Lookups
 import discord
 import inspect
+import traceback
 
 
 class Core:
@@ -30,7 +31,7 @@ class Core:
                     except Exception as e:
                         self.settings['modules'].remove(module)
                         print(f"Module `{module}` blew up.")
-                        print(e)
+                        print(''.join(traceback.format_tb(e.__traceback__)))
 
     async def owners_configuration(self):
         if 'owners' not in self.settings:
@@ -53,20 +54,13 @@ class Core:
 
     @command(aliases=['cog'], usage='<module> [argument]')
     @confirm.instance_owner()
-    async def module(self, ctx):
+    async def module(self, ctx, module: str, argument: str=None):
         """Module management."""
-        if not ctx.args:
-            return await ctx.send('Please specify a module to manange.')
 
         argument_list = ["--load", "--unload", "--reload"]
-        module_name = 'modules.' + ctx.args[0].lower()
+        module_name = 'modules.' + module.lower()
 
-        try:
-            argument = ctx.args[1]
-        except IndexError:
-            argument = '--load'
-
-        if argument == '--load':
+        if argument == '--load' or argument is None:
             if module_name not in self.amethyst.holder.all_modules:
                 self.amethyst.holder.load_module(module_name)
                 self.settings['modules'].append(module_name)
@@ -75,7 +69,7 @@ class Core:
                 await ctx.send(
                     'The module you are trying to load is already loaded.\n'
                     'Please use the `--reload` argument instead.')
-        if argument == '--unload':
+        elif argument == '--unload':
             if module_name in self.amethyst.holder.all_modules:
                 self.amethyst.holder.unload_module(module_name)
                 self.settings['modules'].remove(module_name)
@@ -84,7 +78,7 @@ class Core:
                 await ctx.send(
                     'The module you are trying to unload '
                     'could not be found or is not loaded.')
-        if argument == '--reload':
+        elif argument == '--reload':
             if module_name in self.amethyst.holder.all_modules:
                 self.amethyst.holder.reload_module(module_name)
                 await ctx.send('Module reloaded.')
@@ -92,7 +86,7 @@ class Core:
                 await ctx.send(
                         'The module you are trying to reload is not loaded.\n'
                         'Please try the `--load` argument.')
-        if argument not in argument_list:
+        elif argument not in argument_list:
             await ctx.send(
                     "The argument you specified is invalid.\n"
                     "Please check the available arguments using"
