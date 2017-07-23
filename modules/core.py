@@ -93,6 +93,7 @@ class Core:
                     " `[prefix]arguments`.")
 
     @command()
+    @confirm.instance_owner()
     async def arguments(self, ctx):
         """Lists all arguments."""
         await ctx.send(
