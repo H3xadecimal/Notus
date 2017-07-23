@@ -95,21 +95,25 @@ class Amethyst(discord.Client):
                 paginator.add_line(tagline.format(self.user.name), empty=True)
 
                 for module in modules:
-                    paginator.add_line(module + ':')
-
                     module_commands = [self.holder.get_command(x) for x in self.holder.commands if
                                        self.holder.get_command(x).cls.__class__.__name__ == module and
                                        not hasattr(self.holder.get_command(x), 'parent')]
-                    module_commands = sorted(module_commands, key=lambda x: x.name)
+                    
+                    if str(ctx.msg.author.id) not in self.owners:
+                        module_commands = [x for x in module_commands if not x.hidden]
 
-                    for cmd in module_commands:
-                        spacing = ' ' * (len(longest_cmd) - len(cmd.name) + 1)
-                        line = f'  {cmd.name}{spacing}{cmd.short_description}'
+                    if module_commands:
+                        paginator.add_line(module + ':')
+                        module_commands = sorted(module_commands, key=lambda x: x.name)
 
-                        if len(line) > 80:
-                            line = line[:77] + '...'
+                        for cmd in module_commands:
+                            spacing = ' ' * (len(longest_cmd) - len(cmd.name) + 1)
+                            line = f'  {cmd.name}{spacing}{cmd.short_description}'
 
-                        paginator.add_line(line)
+                            if len(line) > 80:
+                                line = line[:77] + '...'
+
+                            paginator.add_line(line)
 
                 paginator.add_line('')
                 paginator.add_line(f'Type {prefixes[0]}help command for more info on a command.')

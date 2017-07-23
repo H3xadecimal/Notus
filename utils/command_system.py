@@ -136,9 +136,7 @@ class Command:
         self.aliases = aliases or []
         self.cls = None
         self.checks = func._checks if '_checks' in dir(func) else []
-
-        if '_hidden' in dir(func):
-            self.hidden = func._hidden
+        self.hidden = func._hidden if '_hidden' in dir(func) else False
 
     def __repr__(self) -> str:
         return self.name
@@ -604,21 +602,23 @@ def group(**attrs):
 
 
 # Command checker convertor for decorators
-def check(checker, hide=False):
+def check(checker, hide=None):
     def decorator(func):
         if isinstance(func, Command):
             func.checks.append(checker)
 
-            if 'hidden' not in dir(func):
-                func.hidden = hide
+            if hide is True:
+                print('hiding')
+                func = hidden()(func)
         else:
             if '_checks' not in dir(func):
                 func._checks = []
 
             func._checks.append(checker)
 
-            if '_hidden' not in dir(func):
-                func._hidden = hide
+            if hide is True:
+                print('hiding')
+                func = hidden()(func)
 
         return func
 
@@ -629,9 +629,15 @@ def check(checker, hide=False):
 def hidden():
     def decorator(func):
         if isinstance(func, Command):
+            print('double hiding')
             func.hidden = True
         else:
+            print('double hiding')
             func._hidden = True
+
+        return func
+
+    return decorator
 
 
 # Some callback for typing
