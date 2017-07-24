@@ -36,6 +36,7 @@ class Converters:
             discord.Role: self.convert_to_role
         }
         self.arg_complaints = {
+            str: InvalidArg('string', 'hello, "hello there"'),
             int: InvalidArg('integer', '10, 0, 400, -5'),
             float: InvalidArg('float', '0.5, 3.1415, -5.25'),
             bool: InvalidArg('boolean', 'yes, no, off, on'),

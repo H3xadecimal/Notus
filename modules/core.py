@@ -52,7 +52,7 @@ class Core:
             ctx.cmd = ctx.suffix
             await self.amethyst.send_command_help(ctx)
 
-    @command(aliases=['cog'], usage='<module> [argument]')
+    @command(aliases=['cog'])
     @confirm.instance_owner()
     async def module(self, ctx, module: str, argument: str=None):
         """Module management."""

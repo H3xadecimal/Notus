@@ -126,20 +126,44 @@ class Context:
 class Command:
     '''Represents a command.'''
     def __init__(self, func: Callable[..., None],
-                 *, name: str=None, description: str = '',
-                 aliases: list = [], usage: str = ''):
+                 *, name: str=None, description: str='',
+                 aliases: list=[], usage: str='', cls=None):
         self.func = func
         self.name = name or func.__name__
         self.description = description or inspect.cleandoc(func.__doc__ or '')
         self.short_description = self.description.split('\n')[0]
-        self.usage = usage
         self.aliases = aliases or []
-        self.cls = None
+        self.cls = cls
         self.checks = func._checks if '_checks' in dir(func) else []
         self.hidden = func._hidden if '_hidden' in dir(func) else False
+        self.usage = usage
 
     def __repr__(self) -> str:
         return self.name
+
+    def _gen_usage(self):
+        sig = inspect.signature(self.func)
+
+        if not self.usage and list(sig.parameters.items())[2:]:
+            func_args = list(sig.parameters.items())[2:]
+            usage = ''
+
+            for arg in func_args:
+                format_args = [arg[0], '', '']
+
+                if arg[1].kind == inspect.Parameter.VAR_POSITIONAL:
+                    format_args[2] = ' (multiple)'
+
+                if arg[1].annotation is not inspect.Parameter.empty:
+                    type = self.cls.amethyst.converters.arg_complaints[arg[1].annotation].expected
+                    format_args[1] = f': {type}'
+                
+                if arg[1].default is not inspect.Parameter.empty:
+                    usage += f' <{format_args[0]}{format_args[1]}{format_args[2]}>'
+                else:
+                    usage += f' [{format_args[0]}{format_args[1]}{format_args[2]}]'
+
+            self.usage = usage.strip()
 
     async def run(self, ctx: Context) -> None:
         '''
@@ -473,9 +497,13 @@ class CommandHolder:
             cmd.cls = module
             self.commands[cmd.name] = cmd
 
+            cmd._gen_usage()
+
             if isinstance(cmd, CommandGroup):
                 for cmd in cmd.commands:
                     cmd.cls = module
+
+                    cmd._gen_usage()
 
             for alias in cmd.aliases:
                 self.aliases[alias] = self.commands[cmd.name]
@@ -608,7 +636,6 @@ def check(checker, hide=None):
             func.checks.append(checker)
 
             if hide is True:
-                print('hiding')
                 func = hidden()(func)
         else:
             if '_checks' not in dir(func):
@@ -617,7 +644,6 @@ def check(checker, hide=None):
             func._checks.append(checker)
 
             if hide is True:
-                print('hiding')
                 func = hidden()(func)
 
         return func
@@ -629,10 +655,8 @@ def check(checker, hide=None):
 def hidden():
     def decorator(func):
         if isinstance(func, Command):
-            print('double hiding')
             func.hidden = True
         else:
-            print('double hiding')
             func._hidden = True
 
         return func
