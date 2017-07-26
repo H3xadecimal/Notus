@@ -5,6 +5,7 @@ from utils import confirm
 from utils.dataIO import dataIO
 from utils.lookups import Lookups
 
+
 class Core:
     def __init__(self, amethyst):
         self.amethyst = amethyst
@@ -44,7 +45,7 @@ class Core:
         """Loads a module."""
         if not ctx.args:
             return await ctx.send('Please specify a module to load.')
-        
+
         module_name = 'modules.' + ctx.args[0].lower()
 
         if module_name not in self.amethyst.holder.all_modules:
@@ -62,7 +63,7 @@ class Core:
         """Unloads a module."""
         if not ctx.args:
             return await ctx.send('Please specify a module to unload.')
-        
+
         module_name = 'modules.' + ctx.args[0].lower()
 
         if module_name in self.amethyst.holder.all_modules:
@@ -78,7 +79,7 @@ class Core:
         """Reloads a module."""
         if not ctx.args:
             return await ctx.send('Please specify a module to reload.')
-        
+
         module_name = 'modules.' + ctx.args[0].lower()
 
         if module_name in self.amethyst.holder.all_modules:
@@ -113,6 +114,7 @@ class Core:
         """Shuts down the bot.... Duh."""
         await ctx.send("Logging out...")
         await self.amethyst.logout()
+
 
 def setup(amethyst):
     return Core(amethyst)

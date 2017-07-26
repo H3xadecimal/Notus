@@ -98,7 +98,7 @@ class Amethyst(discord.Client):
                     module_commands = [self.holder.get_command(x) for x in self.holder.commands if
                                        self.holder.get_command(x).cls.__class__.__name__ == module and
                                        not hasattr(self.holder.get_command(x), 'parent')]
-                    
+
                     if str(ctx.msg.author.id) not in self.owners:
                         module_commands = [x for x in module_commands if not x.hidden]
 

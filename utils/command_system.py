@@ -157,7 +157,7 @@ class Command:
                 if arg[1].annotation is not inspect.Parameter.empty:
                     type = self.cls.amethyst.converters.arg_complaints[arg[1].annotation].expected
                     format_args[1] = f': {type}'
-                
+             
                 if arg[1].default is not inspect.Parameter.empty:
                     usage += f' <{format_args[0]}{format_args[1]}{format_args[2]}>'
                 else:

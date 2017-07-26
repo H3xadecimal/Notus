@@ -2,6 +2,7 @@ from utils.command_system import command
 from utils import confirm
 import discord
 
+
 class SuperUser:
     def __init__(self, amethyst):
         self.amethyst = amethyst
