@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 
 from discord import utils as dutils
 from discord.ext.commands import Paginator
