@@ -42,18 +42,18 @@ USED_OPTIONS = ['args', 'suffix', 'clean_args', 'clean_suffix', 'cmd']
 
 
 class Context:
-    '''
+    """
     Custom object that get's passed to commands.
     Not intended to be created manually.
-    '''
+    """
     def __init__(self, msg: discord.Message, amethyst: discord.Client):
         cleaned = message_parsing.parse_prefixes(msg.content, amethyst.config['AMETHYST_PREFIXES'])
         self.msg = msg
         self.cmd = message_parsing.get_cmd(cleaned)
         self.suffix, self.args = message_parsing.get_args(cleaned)
 
-    async def __send__(self, content, dest, *, embed=None, file=None, files=None):
-        '''Internal send function, not actually ment to be used by anyone.'''
+    async def _send(self, content, dest, *, embed=None, file=None, files=None):
+        """Internal send function, not actually ment to be used by anyone."""
         if dest == 'channel':
             return await self.msg.channel.send(content, embed=embed, file=file, files=files)
         elif dest == 'author':
@@ -65,7 +65,7 @@ class Context:
                    *, dest: str='channel',
                    embed: discord.Embed=None, file: discord.File=None,
                    files: List[discord.File]=None):
-        '''Sends a message to the context origin, can either be the channel or author.'''
+        """Sends a message to the context origin, can either be the channel or author."""
         if content is None and not embed and not file and not files:
             raise TypeError('No content and no attachments.')
         elif content:
@@ -79,11 +79,11 @@ class Context:
         # (Could be done nicer but eh)
         if content and len(content) > 2000:
             if content.find('```') == -1 or content.find('```', content.find('```') + 3) == -1:
-                await self.__send__(content[:2000], dest, embed=embed, file=file, files=files)
+                await self._send(content[:2000], dest, embed=embed, file=file, files=files)
                 await self.send(content[2000:], dest=dest)
             elif content.find('```', content.find('```') + 3) + 2 < 2000:
-                await self.__send__(content[:content.find('```', content.find('```') + 3) + 3], dest,
-                                    embed=embed, file=file, files=files)
+                await self._send(content[:content.find('```', content.find('```') + 3) + 3], dest,
+                                 embed=embed, file=file, files=files)
                 await self.send(content[content.find('```', content.find('```') + 3) + 3:], dest=dest)
             else:
                 start_block = content[content.find('```'):content.find('\n', content.find('```')) + 1]
@@ -97,12 +97,12 @@ class Context:
 
                 await self.send(split_cont + content, dest=dest, embed=embed, file=file, files=files)
         else:
-            msg = await self.__send__(content, dest, embed=embed, file=file, files=files)
+            msg = await self._send(content, dest, embed=embed, file=file, files=files)
 
         return msg
 
     def is_dm(self):
-        '''Check if the channel for the context is a DM or not.'''
+        """Check if the channel for the context is a DM or not."""
         return isinstance(self.msg.channel, discord.DMChannel)
 
     def has_permission(self, permission, who='self'):
@@ -124,7 +124,7 @@ class Context:
 
 
 class Command:
-    '''Represents a command.'''
+    """Represents a command."""
     def __init__(self, func: Callable[..., None],
                  *, name: str=None, description: str='',
                  aliases: list=[], usage: str='', cls=None):
@@ -142,6 +142,22 @@ class Command:
         return self.name
 
     def _gen_usage(self):
+        """
+        Automatically generates usage text for the command if it has kwargs.
+        Will not run if the command already has a usage.
+
+        Output will look like this:
+            <foo: integer> Required argument with a type.
+            <foo: integer (multiple)> Required argument with a type and multiple (*foo)
+            <foo (multiple)> Required arugment with only a multiple
+            [foo: integer] Optional argument with a type
+            [foo: integer (multiple)] Optional argument with a type and multiple (*foo)
+            [foo (multiple)] Optional argument with only a multiple.
+
+        "Real world" examples:
+            <owners: user (multiple)>
+            <user: user> [reason: string]
+        """
         sig = inspect.signature(self.func)
 
         if not self.usage and list(sig.parameters.items())[2:]:
@@ -155,9 +171,12 @@ class Command:
                     format_args[2] = ' (multiple)'
 
                 if arg[1].annotation is not inspect.Parameter.empty:
-                    type = self.cls.amethyst.converters.arg_complaints[arg[1].annotation].expected
-                    format_args[1] = f': {type}'
-             
+                    if arg[1].annotation.__class__.__name__ == '_Union':
+                        pass
+                    else:
+                        type = self.cls.amethyst.converters.arg_complaints[arg[1].annotation].expected
+                        format_args[1] = f': {type}'
+
                 if arg[1].default is not inspect.Parameter.empty:
                     usage += f' <{format_args[0]}{format_args[1]}{format_args[2]}>'
                 else:
@@ -166,10 +185,10 @@ class Command:
             self.usage = usage.strip()
 
     async def run(self, ctx: Context) -> None:
-        '''
+        """
         Runs a command, taking into account the checks for the command.
         This will also automatically convert arguments if the command has need for it.
-        '''
+        """
         if not self.checks:
             sig = inspect.signature(self.func).parameters
 
@@ -243,7 +262,18 @@ class Command:
 
             # Convert varargs
             for arg in ctx_var_args:
-                arg = await amethyst.converters.convert_arg(ctx, arg, var_arg_cls)
+                # Handle Union types
+                if var_arg_cls.__class__.__name__ == '_Union':
+                    # Gotta love the ol' dir(class) to find internal methods
+                    union_types = var_arg_cls._subs_tree()[1:]
+
+                    for utype in union_types:
+                        arg = await amethyst.converters.convert_arg(ctx, arg, utype)
+
+                        if arg or arg is False:
+                            break
+                else:
+                    arg = await amethyst.converters.convert_arg(ctx, arg, var_arg_cls)
 
                 varargs.append(arg)
 
@@ -254,7 +284,18 @@ class Command:
                     kw_arg = kw_args[i][1]
                     arg_cls = kw_arg.annotation if kw_arg.annotation is not inspect.Parameter.empty else str
 
-                    arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
+                    # Handle Union types
+                    if arg_cls.__class__.__name__ == '_Union':
+                        # Gotta love the ol' dir(class) to find internal methods
+                        union_types = arg_cls._subs_tree()[1:]
+
+                        for utype in union_types:
+                            arg = await amethyst.converters.convert_arg(ctx, arg, utype)
+
+                            if arg or arg is False:
+                                break
+                    else:
+                        arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
 
                     kwargs[kw_args[i][0]] = arg
         else:
@@ -265,7 +306,18 @@ class Command:
                 kw_arg = func_args[i][1]
                 arg_cls = kw_arg.annotation if kw_arg.annotation is not inspect.Parameter.empty else str
 
-                arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
+                # Handle Union types
+                if arg_cls.__class__.__name__ == '_Union':
+                    # Gotta love the ol' dir(class) to find internal methods
+                    union_types = arg_cls._subs_tree()[1:]
+
+                    for utype in union_types:
+                        arg = await amethyst.converters.convert_arg(ctx, arg, utype)
+
+                        if arg or arg is False:
+                            break
+                else:
+                    arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
 
                 kwargs[func_args[i][0]] = arg
 
@@ -336,21 +388,21 @@ class Command:
 
 
 class CommandGroup(Command):
-    '''Represents a command that contains additional commands as subcommands.'''
+    """Represents a command that contains additional commands as subcommands."""
     def __init__(self, func, **attrs):
         super().__init__(func, **attrs)
         self.all_commands = {}
 
     @property
     def commands(self) -> Set[Command]:
-        '''Set of all unique commands and aliases in the group.'''
+        """Set of all unique commands and aliases in the group."""
         return set(self.all_commands.values())
 
     def add_command(self, cmd):
-        '''
+        """
         Adds a command to the group.
         You should use the command decorator for ease-of-use.
-        '''
+        """
         if not isinstance(cmd, Command):
             raise TypeError("Passed command isn't a Command instance.")
 
@@ -367,10 +419,10 @@ class CommandGroup(Command):
             self.all_commands[alias] = cmd
 
     async def run(self, ctx: Context) -> None:
-        '''
+        """
         Runs the main command, or a subcommand, taking into account the group's checks, and the subcommand's checks.
         This will automatically convert any extra arguments for itself or a subcommand
-        '''
+        """
         if not ctx.args or ctx.args[0] not in self.all_commands:
             if not self.checks:
                 sig = inspect.signature(self.func).parameters
@@ -441,7 +493,7 @@ class CommandGroup(Command):
                     await cmd.run(ctx)
 
     def command(self, **attrs):
-        '''Decorator to add a command into the group.'''
+        """Decorator to add a command into the group."""
         def decorator(func):
             res = command(**attrs)(func)
 
@@ -450,9 +502,22 @@ class CommandGroup(Command):
 
         return decorator
 
+    def group(self, **attrs):
+        """
+        Decorator to add a group into the group.
+        No man should have this much power.
+        """
+        def decorator(func):
+            res = group(**attrs)(func)
+
+            self.add_command(res)
+            return res
+
+        return decorator
+
 
 class CommandHolder:
-    '''Object that holds commands and aliases, as well as managing the loading and unloading of modules.'''
+    """Object that holds commands and aliases, as well as managing the loading and unloading of modules."""
     def __init__(self, amethyst):
         self.commands = {}
         self.aliases = {}
@@ -466,19 +531,22 @@ class CommandHolder:
         return x in self.commands
 
     def load_module(self, module_name: str) -> None:
-        '''Loads a module by name, and registers all its commands.'''
+        """Loads a module by name, and registers all its commands."""
         if module_name in self.modules:
             raise Exception(f'Module `{module_name}` is already loaded.')
 
         module = importlib.import_module(module_name)
 
+        # Check if module has needed function
         try:
             module.setup
         except AttributeError:
             del sys.modules[module_name]
             raise Exception('Module does not have a `setup` function.')
 
+        # Get class returned from setup.
         module = module.setup(self.amethyst)
+        # Filter all class methods to only commands and those that do not have a parent (subcommands).
         cmds = [x for x in dir(module) if not re.match('__?.*(?:__)?', x) and isinstance(getattr(module, x), Command)
                 and not hasattr(getattr(module, x), 'parent')]
         loaded_cmds = []
@@ -489,22 +557,29 @@ class CommandHolder:
             raise ValueError('Module is empty.')
 
         for cmd in cmds:
+            # Get command from name
             cmd = getattr(module, cmd)
 
-            if not isinstance(cmd, Command):
+            # Ingore any non-commands if they got through, and subcommands
+            if not isinstance(cmd, Command) or cmd.parent:
                 continue
 
+            # Give the command its parent class because it got ripped out.
             cmd.cls = module
             self.commands[cmd.name] = cmd
 
+            # Generate usage for command.
             cmd._gen_usage()
 
             if isinstance(cmd, CommandGroup):
                 for cmd in cmd.commands:
+                    # Take care of subcommands.
                     cmd.cls = module
 
+                    # Generate subcommand usage
                     cmd._gen_usage()
 
+            # Load aliases for the command
             for alias in cmd.aliases:
                 self.aliases[alias] = self.commands[cmd.name]
                 loaded_aliases.append(alias)
@@ -514,7 +589,7 @@ class CommandHolder:
         self.modules[module_name] = loaded_cmds + loaded_aliases
 
     def reload_module(self, module_name: str) -> None:
-        '''Reloads a module by name, and all its commands.'''
+        """Reloads a module by name, and all its commands."""
         if module_name not in self.modules:
             self.load_module(module_name)
             return
@@ -523,25 +598,28 @@ class CommandHolder:
         self.load_module(module_name)
 
     def unload_module(self, module_name: str) -> None:
-        '''Unloads a module by name, and unregisters all its commands.'''
+        """Unloads a module by name, and unregisters all its commands."""
         if module_name not in self.modules:
             raise Exception(f'Module `{module_name}` is not loaded.')
 
+        # Walk through the commands and remove them from the command and aliases dicts
         for cmd in self.modules[module_name]:
             if cmd in self.aliases:
                 del self.aliases[cmd]
             elif cmd in self.commands:
                 del self.commands[cmd]
 
+        # Remove from self module array, and delete cache.
         del self.modules[module_name]
         del sys.modules[module_name]
 
     def get_command(self, cmd_name: str) -> Union[Command, None]:
-        '''Easily get a command via its name or alias'''
+        """Easily get a command via its name or alias"""
         return self.aliases[cmd_name] if cmd_name in self.aliases else\
             self.commands[cmd_name] if cmd_name in self.commands else None  # I wanted this to line up but fuck u pep8
 
     async def run_command(self, ctx: Context) -> None:
+
         cmd = self.get_command(ctx.cmd)
 
         if not cmd:
@@ -599,7 +677,7 @@ class ContextTyping:
 
 # Command conversion decorator
 def command(**attrs):
-    '''Decorator which converts a function into a command.'''
+    """Decorator which converts a function into a command."""
     def decorator(func):
         if isinstance(func, Command):
             raise TypeError('Function is already a command.')
@@ -614,7 +692,7 @@ def command(**attrs):
 
 # Command group conversion decorator
 def group(**attrs):
-    '''Decorator which converts a function into a command group.'''
+    """Decorator which converts a function into a command group."""
     def decorator(func):
         if isinstance(func, CommandGroup):
             raise TypeError('Function is already a command group.')
@@ -631,6 +709,29 @@ def group(**attrs):
 
 # Command checker convertor for decorators
 def check(checker, hide=None):
+    """
+    Wrapper to make a checker for a command.
+    Your checker function should look something like this:
+    ```py
+    def my_checker():
+        def checker(ctx):
+            return Boolean statement (eg. True, ctx.blah == 'blah')
+
+        return check(checker)
+    ```
+    After which, you can then use it like.
+    ```py
+    from my_confirms_file import my_checker
+
+    ...
+
+    class Blah:
+        ...
+        @command()
+        @my_checker()
+        async def checked_command(self, ctx):
+            ...
+    """
     def decorator(func):
         if isinstance(func, Command):
             func.checks.append(checker)
@@ -653,6 +754,7 @@ def check(checker, hide=None):
 
 # Command hider decorator
 def hidden():
+    """Decorator to quickly hide a command."""
     def decorator(func):
         if isinstance(func, Command):
             func.hidden = True
