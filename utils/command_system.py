@@ -5,7 +5,6 @@ import discord
 import inspect
 import re
 import sys
-import asyncio
 import importlib
 
 PRETTY_PRINTED_PERMS = {
@@ -120,7 +119,7 @@ class Context:
 
     def typing(self):
         """d.py `async with` shortcut for sending typing to a channel."""
-        return ContextTyping(self)
+        return self.msg.channel.typing()
 
 
 class Command:
@@ -134,8 +133,8 @@ class Command:
         self.short_description = self.description.split('\n')[0]
         self.aliases = aliases or []
         self.cls = cls
-        self.checks = func._checks if '_checks' in dir(func) else []
-        self.hidden = func._hidden if '_hidden' in dir(func) else False
+        self.checks = getattr(func, '_checks', [])
+        self.hidden = getattr(func, '_hidden', False)
         self.usage = usage
 
     def __repr__(self) -> str:
@@ -561,7 +560,7 @@ class CommandHolder:
             cmd = getattr(module, cmd)
 
             # Ingore any non-commands if they got through, and subcommands
-            if not isinstance(cmd, Command) or cmd.parent:
+            if not isinstance(cmd, Command) or hasattr(cmd, 'parent'):
                 continue
 
             # Give the command its parent class because it got ripped out.
@@ -640,41 +639,6 @@ class CommandHolder:
         return sorted(self.modules.keys())
 
 
-class ContextTyping:
-    def __init__(self, ctx):
-        self.loop = ctx.msg.channel._state.loop
-        self.ctx = ctx
-
-    async def do_typing(self):
-        try:
-            channel = self._channel
-        except AttributeError:
-            channel = self.ctx.msg.channel
-
-        typing = channel._state.http.send_typing
-
-        while True:
-            await typing(channel.id)
-            await asyncio.sleep(5)
-
-    def __enter__(self):
-        self.task = asyncio.ensure_future(self.do_typing(), loop=self.loop)
-        self.task.add_done_callback(_typing_done_callback)
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        self.task.cancel()
-
-    async def __aenter__(self):
-        self._channel = self.ctx.msg.channel
-
-        await self._channel._state.http.send_typing(self._channel.id)
-        return self.__enter__()
-
-    async def __aexit__(self, exc_type, exc, tb):
-        self.task.cancel()
-
-
 # Command conversion decorator
 def command(**attrs):
     """Decorator which converts a function into a command."""
@@ -739,7 +703,7 @@ def check(checker, hide=None):
             if hide is True:
                 func = hidden()(func)
         else:
-            if '_checks' not in dir(func):
+            if not hasattr(func, '_checks'):
                 func._checks = []
 
             func._checks.append(checker)
@@ -764,11 +728,3 @@ def hidden():
         return func
 
     return decorator
-
-
-# Some callback for typing
-def _typing_done_callback(fut):
-    try:
-        fut.exception()
-    except:
-        pass
