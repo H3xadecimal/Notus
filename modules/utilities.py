@@ -77,30 +77,27 @@ class Utilities:
         else:
             await ctx.send('Added owners.')
 
-    @utils_set.command(name="avatar", usage='<url>')
-    async def utils_set_avatar(self, ctx):
+    @utils_set.command(name="avatar")
+    async def utils_set_avatar(self, ctx, url=None):
         """Changes the bots avatar"""
-        if not ctx.args:
+        if url:
             if not ctx.msg.attachments:
                 return await ctx.send("No avatar found! "
-                                      "Provide an Url or Attachment!")
+                                      "Provide an URL or attachment!")
             else:
-                url = ctx.msg.attachments[0].get("url")
-
-        if not url:
-            url = ctx.suffix
+                url = ctx.msg.attachments[0].url
 
         ext = url.split(".")[-1]
         mime = mimetypes.types_map.get(ext)
         if mime is not None and not mime.startswith("image"):
             # None can still be an image
-            return await ctx.send("Url or Attachment is not an Image!")
+            return await ctx.send("URL or attachment is not an Image!")
 
         async with aiohttp.ClientSession() as s, s.get(url) as r:
             if 200 <= r.status < 300:
                 content = await r.read()
             else:
-                return await ctx.send("Invalid Response code: {}"
+                return await ctx.send("Invalid response code: {}"
                                       .format(r.status_code))
 
         try:
