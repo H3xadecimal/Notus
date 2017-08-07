@@ -138,7 +138,7 @@ class Lookups:
     async def channel_lookup(self, ctx, what, *, not_found_msg=True, suppress_error_msgs=False, voice_only=False):
         if ctx.is_dm():
             await ctx.send('Channels cannot be looked up in DMs.')
-            return BadResponseException() 
+            return BadResponseException()
 
         channel = None
 
