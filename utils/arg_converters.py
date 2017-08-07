@@ -37,8 +37,8 @@ class Converters:
         }
         self.arg_complaints = {
             str: InvalidArg('string', 'hello, "hello there"'),
-            int: InvalidArg('integer', '10, 0, 400, -5'),
-            float: InvalidArg('float', '0.5, 3.1415, -5.25'),
+            int: InvalidArg('number', '10, 0, 400, -5'),
+            float: InvalidArg('decimal', '0.5, 3.1415, -5.25'),
             bool: InvalidArg('boolean', 'yes, no, off, on'),
             discord.Member: InvalidArg('user', '@example, example, 1234567890 (id)'),
             discord.User: InvalidArg('user', '@example, example, 1234567890 (id)'),
