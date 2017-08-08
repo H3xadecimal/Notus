@@ -4,8 +4,8 @@ jobs:
   build:
     docker:
      # we'll be using the Amethyst image 
-      - image: chinodesuuu/ci-amethyst
-    working_directory: ~/kitsuchan
+      - image: chinodesuuu/ci-amethyst:latest
+    working_directory: ~/Amethyst
     steps:
       - checkout
       - run:
