@@ -7,9 +7,9 @@ class SuperUser:
     def __init__(self, amethyst):
         self.amethyst = amethyst
 
-    @command(usage='<path1> <path2>')
+    @command()
     @confirm.instance_owner()
-    async def coreswap(self, ctx):
+    async def coreswap(self, ctx, *, path1, path2):
         """Command to swap your core module.
 
         Please note that this cog is in the devleopment folder,
