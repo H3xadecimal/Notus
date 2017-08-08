@@ -15,5 +15,9 @@ jobs:
            mv discord.py/discord discord
       - run:
           command: |
+          python3 --version
+           
+      - run:
+          command: |
            cloc --exclude-dir=discord --exclude-dir=discord.py .           
            python3 -m compileall -x discord.* .
