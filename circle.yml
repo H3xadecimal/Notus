@@ -17,4 +17,4 @@ jobs:
           command: |
            python3 --version
            cloc --exclude-dir=discord --exclude-dir=discord.py .           
-           /usr/bin/python3.6 -m compileall -x discord.* .
+           python3 -m compileall -x discord.* .
