@@ -1,7 +1,7 @@
 pipeline {
     agent {
         docker {
-            image 'chinodesuuu/ci-amethyst'
+            image 'pandentia/jenkins-discordpy-rewrite'
         }
     }
     stages {
@@ -9,7 +9,7 @@ pipeline {
             steps {
                 sh 'cloc .'
                 sh 'flake8 --show-source --max-line-length 120 .'
-                sh 'python3 -m compileall -x discord.* .'
+                sh 'python -m compileall -x discord.* .'
             }
         }
     }
