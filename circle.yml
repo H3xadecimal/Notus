@@ -16,8 +16,6 @@ jobs:
       - run:
           command: |
            python3 --version
-           cloc --exclude-dir=discord --exclude-dir=discord.py .           
+           cloc --exclude-dir=discord --exclude-dir=discord.py .
+           pytest
            python3 -m compileall -x discord.* .
-      - run:
-          command: |
-          pytest
