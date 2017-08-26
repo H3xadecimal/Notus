@@ -1,4 +1,4 @@
-from utils.command_system import command, group
+from utils.command_system import group
 import urllib.parse as urls
 import discord
 import re
@@ -37,7 +37,7 @@ class Monstercat:
             return await ctx.send('Please give me an artist to search for.')
 
         async with ctx.typing():
-            artist = ctx.suffix.lower().replace(' & ', '-').replace(' ', '-')
+            artist = urls.quote(ctx.suffix.lower().replace(' & ', '-').replace(' ', '-'))
             url = BASE_URI + f'/catalog/artist/{artist}'
 
             async with self.amethyst.session.get(url) as r:
@@ -49,7 +49,7 @@ class Monstercat:
             if 'error' in res and res['message'] != 'Artist not found.':
                 return await ctx.send(f'Error: {res.message}')
             elif 'error' in res:
-                url = BASE_URI + f"/catalog/artist?fuzzy=name,{ctx.suffix.split(' ')[0]}"
+                url = BASE_URI + f"/catalog/artist?fuzzy=name,{urls.quote(ctx.suffix.split(' ')[0])}"
 
                 async with self.amethyst.session.get(url) as r:
                     if 200 <= r.status < 300:
