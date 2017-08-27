@@ -268,8 +268,8 @@ class Monstercat:
                 tracks1 = '\n'.join(tracks_names[:len(tracks_names) // 2])
                 tracks2 = '\n'.join(tracks_names[len(tracks_names) // 2:])
 
-                embed.add_field(name='Tracks - Part 1', values=tracks1, inline=False)
-                embed.add_field(name='Tracks - Part 2', values=tracks2, inline=False)
+                embed.add_field(name='Tracks - Part 1', value=tracks1, inline=False)
+                embed.add_field(name='Tracks - Part 2', value=tracks2, inline=False)
         else:
             track = tracks['results'][0]
 
