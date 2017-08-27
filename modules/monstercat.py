@@ -1,4 +1,4 @@
-from utils.command_system import group
+from utils.command_system import command, group
 from typing import Union
 from datetime import datetime
 import urllib.parse as urls
@@ -81,7 +81,7 @@ def get_type_from_catalog_id(id: str) -> Union[str, None]:
 
 
 def gen_duration(seconds: int) -> str:
-    '''Generate a human readable time from seconds.'''
+    """Generate a human readable time from seconds."""
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
 
@@ -92,14 +92,34 @@ class Monstercat:
     def __init__(self, amethyst):
         self.amethyst = amethyst
 
+    @command(aliases=['ids', 'catalogid', 'catalogids'])
+    async def catalog(self, ctx):
+        """Explains Monstercat catalog IDs, and what they mean."""
+        await ctx.send('Monstercat has a set of different catalog IDs which are used to differentiate types of '
+                       'releases, and when they were released in relation to each other.\n\n'
+                       '**List of (Known) Catalog IDs**\n'
+                       '*Any instances of `X`, with the exception of `MCX` are meant to be a number.*\n\n'
+                       '**MCUV-X** - Uncaged Albums\n'
+                       '**MCXXX** - Albums before Uncaged\n'
+                       '**MCBXXX** - Best of Compilations\n'
+                       '**MCXNNN** - "Special" Compilations\n'
+                       '**MCX-N** - 5 Year Anniversary Track\n'
+                       '**MCRLXXX** - Rocket Leage Album\n'
+                       '**MCLPXXX** - Long Play (LP)\n'
+                       '**MCEPXXX** - Extended Play (EP)\n'
+                       '**COTWXXX** - Call of the Wild\n'
+                       '**MCPXXX** - Monstercat Podcast (before the rename to Call of the Wild)\n'
+                       '**MCSXXX** - Single\n'
+                       '**MCFXXX** - Free Download')
+
     @group()
     async def search(self, ctx):
-        '''Search for various Monstercat things.'''
+        """Search for various Monstercat things."""
         await self.amethyst.send_command_help(ctx)
 
     @search.command(usage='<artist>')
     async def artist(self, ctx):
-        '''Search for an artist.'''
+        """Search for an artist."""
         if not ctx.args:
             return await ctx.send('Please give me an artist to search for.')
 
