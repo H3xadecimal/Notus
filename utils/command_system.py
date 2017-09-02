@@ -1,3 +1,10 @@
+"""
+'Dusk' command system for Amethyst.
+Based loosely (heh) off of discord.py's ext command system.
+
+TODO: clean up some things, refactor arg parsing probably, and maybe break up into smaller modules for cleanliness.
+"""
+
 from typing import Callable, List, Union, Set, Tuple
 from utils import message_parsing
 from utils.arg_converters import InvalidArg
