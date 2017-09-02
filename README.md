@@ -7,13 +7,13 @@
 # Amethyst (Developer Build)
  [Support the Developers](https://patreon.com/capuccino) | [Discord Server](https://discord.gg/5sHTkKq)
 
-Amethyst is a discord bot built on Python using the discord.py library.
+Amethyst is a Discord bot built on Python using the discord.py library.
 
-Special thanks to the Amethyst Team for all the contributions.
+Special thanks to the Amethyst team for all the contributions.
 
 This branch is for the developer build of Amethyst.
 
-# B..but what's the difference?
+# B-but what's the difference?
 This branch includes more stuff like tracebacks and a few more code fixes.
 The 'fragment' system has also been renamed to just 'module' as fragments was too corny.
 All core commands now have a semi-proper checks (or as i like to call it, Confirm) instead of using ifs.
