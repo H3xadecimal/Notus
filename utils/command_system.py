@@ -136,6 +136,7 @@ class Command:
         self.checks = getattr(func, '_checks', [])
         self.hidden = getattr(func, '_hidden', False)
         self.usage = usage
+        self.parent = None
 
     def __repr__(self) -> str:
         return self.name
@@ -547,7 +548,7 @@ class CommandHolder:
         module = module.setup(self.amethyst)
         # Filter all class methods to only commands and those that do not have a parent (subcommands).
         cmds = [x for x in dir(module) if not re.match('__?.*(?:__)?', x) and isinstance(getattr(module, x), Command)
-                and not hasattr(getattr(module, x), 'parent')]
+                and not getattr(module, x).parent]
         loaded_cmds = []
         loaded_aliases = []
 
@@ -560,7 +561,7 @@ class CommandHolder:
             cmd = getattr(module, cmd)
 
             # Ingore any non-commands if they got through, and subcommands
-            if not isinstance(cmd, Command) or hasattr(cmd, 'parent'):
+            if not isinstance(cmd, Command) or cmd.parent:
                 continue
 
             # Give the command its parent class because it got ripped out.
@@ -602,7 +603,7 @@ class CommandHolder:
             raise Exception(f'Module `{module_name}` is not loaded.')
 
         # Walk through the commands and remove them from the command and aliases dicts
-        for cmd in self.modules[module_name]:
+        for cmd in [x for x in self.modules[module_name] if not x.parent]:
             if cmd in self.aliases:
                 del self.aliases[cmd]
             elif cmd in self.commands:
