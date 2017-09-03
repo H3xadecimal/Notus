@@ -579,12 +579,12 @@ class CommandHolder:
             cmd._gen_usage()
 
             if isinstance(cmd, CommandGroup):
-                for cmd in cmd.commands:
+                for _cmd in cmd.commands:
                     # Take care of subcommands.
-                    cmd.cls = module
+                    _cmd.cls = module
 
                     # Generate subcommand usage
-                    cmd._gen_usage()
+                    _cmd._gen_usage()
 
             # Load aliases for the command
             for alias in cmd.aliases:
