@@ -1,4 +1,4 @@
-from utils.command_system import check
+from utils.dusk import check
 import __main__
 import discord
 
