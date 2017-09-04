@@ -1,6 +1,5 @@
 from typing import Union, List
-from .command import Command
-from .command_group import CommandGroup
+from .command import Command, CommandGroup
 from .context import Context
 import importlib
 import sys
