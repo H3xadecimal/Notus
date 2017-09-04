@@ -1,14 +1,12 @@
-from typing import Callable, Union
 from .command import Command
-from .command_group import CommandGroup
 from .context import Context
 import inspect
 
 
 # Command conversion decorator
-def command(**attrs) -> Callable[Callable, Command]:
+def command(**attrs):
     """Decorator which converts a function into a command."""
-    def decorator(func: Callable) -> Command:
+    def decorator(func):
         if isinstance(func, Command):
             raise TypeError('Function is already a command.')
 
@@ -21,10 +19,10 @@ def command(**attrs) -> Callable[Callable, Command]:
 
 
 # Command group conversion decorator
-def group(**attrs) -> Callable[Callable, CommandGroup]:
+def group(**attrs):
     """Decorator which converts a function into a command group."""
-    def decorator(func: Callable) -> CommandGroup:
-        if isinstance(func, CommandGroup):
+    def decorator(func):
+        if func.__class__.__name__ == 'CommandGroup':
             raise TypeError('Function is already a command group.')
         elif isinstance(func, Command):
             raise TypeError('Function is already a command.')
@@ -38,7 +36,7 @@ def group(**attrs) -> Callable[Callable, CommandGroup]:
 
 
 # Command checker convertor for decorators
-def check(checker: Callable[Context, bool], hide: bool=None) -> Callable[Callable, Union[Command, Callable]]:
+def check(checker, hide=None):
     """
     Wrapper to make a checker for a command.
     Your checker function should look something like this:
@@ -62,7 +60,7 @@ def check(checker: Callable[Context, bool], hide: bool=None) -> Callable[Callabl
         async def checked_command(self, ctx):
             ...
     """
-    def decorator(func: Callable) -> Union[Callable, Command]:
+    def decorator(func):
         if isinstance(func, Command):
             func.checks.append(checker)
 
@@ -83,9 +81,9 @@ def check(checker: Callable[Context, bool], hide: bool=None) -> Callable[Callabl
 
 
 # Command hider decorator
-def hidden() -> Callable:
+def hidden():
     """Decorator to quickly hide a command."""
-    def decorator(func: Callable) -> Union[Callable, Command]:
+    def decorator(func):
         if isinstance(func, Command):
             func.hidden = True
         else:
