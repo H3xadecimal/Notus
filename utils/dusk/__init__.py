@@ -6,7 +6,6 @@ TODO: clean up some things, refactor arg parsing probably.
 """
 
 from .context import Context  # NOQA
-from .command_group import CommandGroup  # NOQA
+from .command import *  # NOQA
 from .command_holder import CommandHolder  # NOQA
 from .constants import *  # NOQA
-from .decorators import *  # NOQA
