@@ -3,7 +3,7 @@
 from discord import utils as dutils
 from discord.ext.commands import Paginator
 from utils.dataIO import dataIO
-from utils import command_system, message_parsing
+from utils import dusk, message_parsing
 import utils.arg_converters as arg_converters
 import traceback
 import redis
@@ -70,7 +70,7 @@ class Amethyst(discord.Client):
         self.send_command_help = self.send_cmd_help
         self.settings = dataIO.load_json('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
-        self.holder = command_system.CommandHolder(self)
+        self.holder = dusk.CommandHolder(self)
         self.converters = arg_converters.Converters(self)
         self.session = aiohttp.ClientSession()
 
@@ -228,7 +228,7 @@ class Amethyst(discord.Client):
         if not self.holder.get_command(cmd):
             return
 
-        ctx = command_system.Context(message, self)
+        ctx = dusk.Context(message, self)
 
         try:
             await self.holder.run_command(ctx)
