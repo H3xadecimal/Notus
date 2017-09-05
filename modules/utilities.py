@@ -45,13 +45,13 @@ class Utilities:
     async def utils_set_game(self, ctx):
         """Sets Bot's playing status."""
         if ctx.args:
-            await self.amethyst.change_presence(game=discord.Game(name=ctx.suffix))
+            await self.amethyst.change_presence(game=discord.Game(name=ctx.suffix, type=0))
             await ctx.send("Done.")
         else:
             await self.amethyst.change_presence(game=None)
             await ctx.send("Done.")
 
-    @utils_set.command(name="status", usage='[game]')
+    @utils_set.command(name="status", usage='[status]')
     async def utils_set_status(self, ctx):
         """Sets bot presence."""
         if ctx.args:
