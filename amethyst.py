@@ -200,9 +200,9 @@ class Amethyst(discord.Client):
         await ctx.send(error)
 
     async def on_message(self, message):
-        if (not message.content or
-                message.author.bot or
-                message.author.id in self.settings['blacklist']):
+        if (not message.content or message.author.bot or
+                (str(message.author.id) in self.settings['blacklist'] and
+                 str(message.author.id) not in self.owners)):
             return
 
         cleaned = message_parsing.parse_prefixes(message.content, prefixes)

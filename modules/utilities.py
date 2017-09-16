@@ -68,7 +68,8 @@ class Utilities:
             return await self.amethyst.send_command_help(ctx)
 
         owners = [await self.lookups.member_lookup(ctx, arg) for arg in ctx.args]
-        owners = [str(x.id) for x in owners if isinstance(x, discord.Member)]
+        owners = [str(x.id) for x in owners if isinstance(x, discord.Member) and str(x.id) not in
+                  self.settings['owners']]
         self.settings['owners'] += owners
 
         if len(owners) == 1:
@@ -112,43 +113,25 @@ class Utilities:
         """Prevents a user from using the bot globally."""
         await self.amethyst.send_command_help(ctx)
 
-    @blacklist_commands.command(name="add", usage='<user>')
-    async def add_blacklist(self, ctx):
+    @blacklist_commands.command(name="add")
+    async def add_blacklist(self, ctx, *, user: discord.Member):
         """Adds a user to blacklist."""
-        if not ctx.args:
-            await self.amethyst.send_command_help(ctx)
-
-        user = await self.lookups.member_lookup(ctx, ctx.suffix)
-
-        if isinstance(user, lookups.BadResponseException):
-            return
-
-        if user.id not in self.settings['blacklist']:
+        if str(user.id) not in self.settings['blacklist']:
             try:
-                self.settings['blacklist'].append(user.id)
+                self.settings['blacklist'].append(str(user.id))
                 await ctx.send("User blacklisted.")
             except:
                 await ctx.send("An error occured.")
         else:
             await ctx.send("User already blacklisted.")
 
-    @blacklist_commands.command(name="remove", usage='<user>')
-    async def remove_blacklist(self, ctx, user):
+    @blacklist_commands.command(name="remove")
+    async def remove_blacklist(self, ctx, *, user: discord.Member):
         """Removes a user from blacklist."""
-        if not ctx.args:
-            # I should probably end up making this automatic if the command doesn't
-            # have all of its required args filled.
-            await self.amethyst.send_command_help(ctx)
-
-        user = await self.lookups.member_lookup(ctx, ctx.suffix)
-
-        if isinstance(user, lookups.BadResponseException):
-            return
-
-        if user.id not in self.settings['blacklist']:
+        if str(user.id) not in self.settings['blacklist']:
             await ctx.send("User is not blacklisted.")
         else:
-            self.settings['blacklist'].remove(user.id)
+            self.settings['blacklist'].remove(str(user.id))
             await ctx.send("User removed from blacklist.")
 
     @command(aliases=['clean'])
