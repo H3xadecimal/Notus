@@ -95,7 +95,7 @@ class CommandHolder:
             raise Exception(f'Module `{module_name}` is not loaded.')
 
         # Walk through the commands and remove them from the command and aliases dicts
-        for cmd in [x for x in self.modules[module_name] if not x.parent]:
+        for cmd in self.modules[module_name]:
             if cmd in self.aliases:
                 del self.aliases[cmd]
             elif cmd in self.commands:
