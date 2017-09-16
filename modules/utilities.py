@@ -10,7 +10,7 @@ import mimetypes
 class Utilities:
     def __init__(self, amethyst):
         self.amethyst = amethyst
-        self.settings = dataIO.load_json('settings')
+        self.settings = amethyst.data.load('settings')
         self.lookups = lookups.Lookups(amethyst)
 
     @command()

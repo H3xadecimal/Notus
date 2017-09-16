@@ -11,7 +11,7 @@ class Core:
     def __init__(self, amethyst):
         self.amethyst = amethyst
         self.firmware = "Stock Firmware: Compact 0.3"
-        self.settings = dataIO.load_json('settings')
+        self.settings = amethyst.data.load('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
         self.owners_task = amethyst.loop.create_task(self.owners_configuration())
         self.lookups = Lookups(amethyst)

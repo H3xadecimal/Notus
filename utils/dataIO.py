@@ -93,15 +93,17 @@ class RedisDict(dict):
         return super().clear()
 
 
-class dataIO:
-    @staticmethod
-    def save_json(filename, content):
-        pass  # "oops"
+class DataManager:
+    """Main manager class for Redis data."""
 
-    @staticmethod
-    def load_json(filename):
-        return RedisDict(key=filename, redis=__main__.redis_conn)
+    def __init__(self, redis, *, namespace='amethyst'):
+        self.keys = {}
+        self.redis = redis
+        self.namespace = namespace
 
+    def load(self, key: str):
+        """Gets access to a data key from Redis."""
+        if key not in self.keys:
+            self.keys[key] = RedisDict(key, self.redis, self.namespace)
 
-load_json = dataIO.load_json
-load = load_json
+        return self.keys[key]

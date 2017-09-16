@@ -2,7 +2,7 @@
 
 from discord import utils as dutils
 from discord.ext.commands import Paginator
-from utils.dataIO import dataIO
+from utils.dataIO import DataManager
 from utils import dusk, message_parsing
 import utils.arg_converters as arg_converters
 import traceback
@@ -17,24 +17,14 @@ import aiohttp
 with open("config.json") as f:
     config = json.load(f)
 
-redis_host = config.get('AMETHYST_REDIS_HOST') or 'localhost'
+redis_host = config.get('AMETHYST_REDIS_HOST', 'localhost')
 redis_pass = config.get('AMETHYST_REDIS_PASSWORD')
-redis_port = int(config.get('AMETHYST_REDIS_PORT') or 6379)
-redis_db = int(config.get('AMETHYST_REDIS_DB') or 0)
+redis_port = int(config.get('AMETHYST_REDIS_PORT', 6379))
+redis_db = int(config.get('AMETHYST_REDIS_DB', 0))
 token = config.get('AMETHYST_TOKEN')
 prefixes = config.get('AMETHYST_PREFIXES', [])
-tagline = config.get('AMETHYST_TAGLINE') or '{} is an instance of Amethyst, learn more about the\
- project at https://github.com/awau/Amethyst'
-
-if config.get('AMETHYST_PREFIX'):
-    print('IMPORTANT')
-    print('Oldish config detected with key `AMETHYST_PREFIX`')
-    print('Due to the new system supporting multiple prefixes, this value is being phased out in favour of '
-          '`AMETHYST_PREFIXES`')
-    print('The original key will still be added to all prefixes for now, however we cannot guarantee that this will be '
-          'around forever, so it is recommended that you switch over to `AMETHYST_PREFIXES`')
-
-    prefixes.append(config.get('AMETHYST_PREFIX'))
+tagline = config.get('AMETHYST_TAGLINE', '{} is an instance of Amethyst, learn more about the project at'
+                     'https://github.com/awau/Amethyst')
 
 # CMD-L Arguments
 parser = argparse.ArgumentParser()
@@ -65,10 +55,11 @@ class Amethyst(discord.Client):
         super().__init__(**options)
         self.args = args
         self.redis = redis
+        self.data = DataManager(self.redis)
         self.owner = None
         self.config = config
         self.send_command_help = self.send_cmd_help
-        self.settings = dataIO.load_json('settings')
+        self.settings = self.data.load('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
         self.holder = dusk.CommandHolder(self)
         self.converters = arg_converters.Converters(self)
@@ -188,12 +179,12 @@ class Amethyst(discord.Client):
                 await asyncio.sleep(.333)
 
     async def on_ready(self):
-        self.redis.set(
-            '__info__',
-            'This database is being used by the Amethyst Framework.')
+        self.redis.set('__info__', 'This database is being used by the Amethyst Framework.')
+
         app_info = await self.application_info()
         self.invite_url = dutils.oauth_url(app_info.id)
         self.owner = str(app_info.owner.id)
+
         print('Ready.')
         print(self.invite_url)
         print(self.user.name)
@@ -203,11 +194,8 @@ class Amethyst(discord.Client):
     async def handle_error(self, exception, ctx):
         _traceback = traceback.format_tb(exception.__traceback__)
         _traceback = ''.join(_traceback)
-        error = ('`{0}` in command `{1}`: ```py\n'
-                 'Traceback (most recent call last):\n{2}{0}: {3}\n```')\
-            .format(type(exception).__name__,
-                    ctx.cmd, _traceback,
-                    exception)
+        error = '`{0}` in command `{1}`: ```py\nTraceback (most recent call last):\n{2}{0}: {3}\n```'.format(
+                type(exception).__name__, ctx.cmd, _traceback, exception)
 
         await ctx.send(error)
 
