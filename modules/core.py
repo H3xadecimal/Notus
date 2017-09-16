@@ -1,6 +1,5 @@
 from utils.dusk import command
 from utils import confirm
-from utils.dataIO import dataIO
 from utils.lookups import Lookups
 import discord
 import inspect

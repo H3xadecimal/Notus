@@ -1,6 +1,5 @@
 from utils.dusk import command, group
 from utils import confirm, lookups
-from utils.dataIO import dataIO
 import discord
 import asyncio
 import aiohttp
