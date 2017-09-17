@@ -1,0 +1,14 @@
+engines:
+  radon: 
+    enabled: true
+    config: 
+      threshold: "C"
+    config: 
+      python_version: 3.6
+  duplication:
+    enabled: false
+    config:
+      languages:
+      - python
+  fixme:
+      enabled: true
