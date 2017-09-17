@@ -2,7 +2,7 @@
 'Dusk' command system for Amethyst.
 Based loosely (heh) off of discord.py's ext command system.
 
-TODO: clean up some things, refactor arg parsing probably.
+TODO: refactor arg parsing probably.
 """
 
 from .context import Context  # NOQA
