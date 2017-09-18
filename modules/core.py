@@ -53,7 +53,7 @@ class Core:
 
     @command(aliases=['cog'])
     @confirm.instance_owner()
-    async def module(self, ctx, module: str, argument: str=None):
+    async def module(self, ctx, *, module: str, argument: str=None):
         """Module management."""
 
         argument_list = ["--load", "--unload", "--reload"]
