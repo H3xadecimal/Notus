@@ -60,7 +60,7 @@ class Command:
                     if arg[1].annotation.__class__.__name__ == '_Union':
                         pass
                     else:
-                        type = self.cls.amethyst.converters.arg_complaints[arg[1].annotation].expected
+                        type = self.cls.amethyst.converters.complaints[arg[1].annotation].expected
                         format_args[1] = f': {type}'
 
                 if arg[1].default is not inspect.Parameter.empty:
