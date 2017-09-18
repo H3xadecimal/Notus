@@ -4,8 +4,8 @@ Revision 1
 Copyright Hexadecimal (c) 2017.
 
 Permission is granted to use, modify, integrate, redistribute, etc., the source code of this program
-in any way you like - except as stated below - as long as the original copyright notice and license
-of the project is maintained with no modification. Permission is NOT granted to sell the program,
+in any way you like - except as stated below - so long as the original copyright notice and license
+of the project is maintained as is, with no modification. Permission is NOT granted to sell the program,
 source code, or any parts thereof, in any way, shape or form.
 
 THE SOURCE CODE IS PROVIDED WITH NO WARRANTY OF ANY KIND, IMPLICIT OR EXPLICIT.
