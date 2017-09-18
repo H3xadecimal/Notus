@@ -2,8 +2,6 @@ import threading
 import time
 import pickle
 import json
-# noinspection PyUnresolvedReferences
-import __main__
 
 
 class RedisDict(dict):
