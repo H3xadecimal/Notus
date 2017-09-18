@@ -1,6 +1,5 @@
 from typing import Callable, List, Tuple, Set
 from .context import Context
-from utils.arg_converters import InvalidArg
 import inspect
 
 POS = inspect.Parameter.VAR_POSITIONAL
@@ -116,95 +115,95 @@ class Command:
 
                     await self.func(self.cls, ctx, *args, **kwargs)
 
-    async def proc_args(self, ctx: Context):
-    """
-    Proccess extra arguments for the command if it has them, obeying the types and defaults that have them.
-    Any arguments that do not have a type hint will be automatically defaulted to `str`.
+    async def proc_args(self, ctx: Context) -> Tuple[list, dict]:
+        """
+        Proccess extra arguments for the command if it has them, obeying the types and defaults that have them.
+        Any arguments that do not have a type hint will be automatically defaulted to `str`.
 
-    There shouldn't be any real reason to use this on your own.
-    """
-    args = list(inspect.signature(self.func).parameters.items())[2:]  # Stupid iterator subclass things
-    pos_args = []
-    kw_args = {}
-    amethyst = self.cls.amethyst  # noqa Maybe find some better way of getting an Amethyst instance or converters, this is too reliant on the end user.
-    has_pos = False
-    has_kw = False
+        There shouldn't be any real reason to use this on your own.
+        """
+        args = list(inspect.signature(self.func).parameters.items())[2:]  # Stupid iterator subclass things
+        pos_args = []
+        kw_args = {}
+        amethyst = self.cls.amethyst  # noqa Maybe find some better way of getting an Amethyst instance or converters, this is too reliant on the end user.
+        has_pos = False
+        has_kw = False
 
-    if not args:
-        return [], {}
+        if not args:
+            return [], {}
 
-    # Multi positional arguments (*varargs)
-    if args[0][1].kind == POS:
-        has_pos = True
-        arg = args.pop(0)
-        ctx_pos = ctx.args[:-len(args)]
-        arg_type = arg[1].annotation if arg[1].annotation is not EMPTY else str
-        arg_type = arg_type._subs_tree()[1:] if IS_UNION(arg_type) else arg_type
-
-        for pos in ctx_pos:
-            if type(arg_type) == list:  # Union
-                for utype in arg_type:
-                    _arg = await amethyst.converters.convert_arg(ctx, pos, utype)
-
-                    if _arg or _arg is False:
-                        break
-            else:
-                _arg = await amethyst.converters.convert_arg(ctx, pos, arg_type)
-
-            pos_args.append(_arg)
-
-    # Keyword arguments (*, kwarg=None)
-    if args and args[0][1].kind == KW:
-        ctx_kw = ctx.args[-len(args):] if has_pos else ctx.args
-        has_kw = True
-
-        for i, kw in enumerate(args):
-            arg_type = kw[1].annotation if kw[1].annotation != EMPTY else str
+        # Multi positional arguments (*varargs)
+        if args[0][1].kind == POS:
+            has_pos = True
+            arg = args.pop(0)
+            ctx_pos = ctx.args[:-len(args)]
+            arg_type = arg[1].annotation if arg[1].annotation is not EMPTY else str
             arg_type = arg_type._subs_tree()[1:] if IS_UNION(arg_type) else arg_type
 
-            if type(arg_type) == list:  # Union
-                for utype in arg_type:
-                    _arg = await amethyst.converters.convert_arg(ctx, ctx_kw[i], utype)
+            for pos in ctx_pos:
+                if type(arg_type) == list:  # Union
+                    for utype in arg_type:
+                        _arg = await amethyst.converters.convert_arg(ctx, pos, utype)
 
-                    if _arg or _arg is False:
-                        break
-            else:
-                _arg = await amethyst.converters.convert_arg(ctx, ctx_kw[i], arg_type)
+                        if _arg or _arg is False:
+                            break
+                else:
+                    _arg = await amethyst.converters.convert_arg(ctx, pos, arg_type)
 
-            kw_args[kw[0]] = _arg
-    else:
-        raise ValueError(f'Unknown or unsupported argument type: {args[0][1].kind.name}')
+                pos_args.append(_arg)
 
-    # Handle any positional arguments that have the wrong type.
-    # Blame flake8 for the shitty indentation
-    if has_pos and arg[1].annotation not in (EMPTY, str) and ([x for x in pos_args if not isinstance(x,
-                                                            arg[1].annotation)] or not pos_args):
-        await ctx.send(amethyst.converters.complaints[arg[1].annotation])
-        return [], {}
+        # Keyword arguments (*, kwarg=None)
+        if args and args[0][1].kind == KW:
+            ctx_kw = ctx.args[-len(args):] if has_pos else ctx.args
+            has_kw = True
 
-    # Handle keyword arguments with wrong types.
-    if has_kw and len(kw_args) == len(args):
-        invalids = [arg for arg in args if arg[1].annotation != EMPTY and
-                    not isinstance(kw_args[arg[0]], arg[1].annotation)]
+            for i, kw in enumerate(args):
+                arg_type = kw[1].annotation if kw[1].annotation != EMPTY else str
+                arg_type = arg_type._subs_tree()[1:] if IS_UNION(arg_type) else arg_type
 
-        if invalids:
-            first = invalids[0]
-            msg = amethyst.converters.complaints[first[1].annotation]
+                if type(arg_type) == list:  # Union
+                    for utype in arg_type:
+                        _arg = await amethyst.converters.convert_arg(ctx, ctx_kw[i], utype)
 
-            await ctx.send(f'Error for argument `{first[1]}` for command `{ctx.cmd}`\n```{msg}```')
+                        if _arg or _arg is False:
+                            break
+                else:
+                    _arg = await amethyst.converters.convert_arg(ctx, ctx_kw[i], arg_type)
+
+                kw_args[kw[0]] = _arg
+        else:
+            raise ValueError(f'Unknown or unsupported argument type: {args[0][1].kind.name}')
+
+        # Handle any positional arguments that have the wrong type.
+        # Blame flake8 for the shitty indentation
+        if has_pos and arg[1].annotation not in (EMPTY, str) and ([x for x in pos_args if not isinstance(x,
+                                                                   arg[1].annotation)] or not pos_args):
+            await ctx.send(amethyst.converters.complaints[arg[1].annotation])
             return [], {}
-    elif has_kw:  # Handle missing arguments that do not have a default.
-        missing_args = [x for x in args[len(kw_args):] if x[1].default == EMPTY]
 
-        if missing_args:
-            first = missing_args[0]
-            atype = first[1].annotation if first[1].annotation != EMPTY else str
-            atype = amethyst.converters.complaints[atype].expected
+        # Handle keyword arguments with wrong types.
+        if has_kw and len(kw_args) == len(args):
+            invalids = [arg for arg in args if arg[1].annotation != EMPTY and
+                        not isinstance(kw_args[arg[0]], arg[1].annotation)]
 
-            await ctx.send(f'Missing argument `{first[0]}` for command `{ctx.cmd}`.\nThis should be a {atype}')
-            return [], {}
+            if invalids:
+                first = invalids[0]
+                msg = amethyst.converters.complaints[first[1].annotation]
 
-    return pos_args, kw_args
+                await ctx.send(f'Error for argument `{first[1]}` for command `{ctx.cmd}`\n```{msg}```')
+                return [], {}
+        elif has_kw:  # Handle missing arguments that do not have a default.
+            missing_args = [x for x in args[len(kw_args):] if x[1].default == EMPTY]
+
+            if missing_args:
+                first = missing_args[0]
+                atype = first[1].annotation if first[1].annotation != EMPTY else str
+                atype = amethyst.converters.complaints[atype].expected
+
+                await ctx.send(f'Missing argument `{first[0]}` for command `{ctx.cmd}`.\nThis should be a {atype}')
+                return [], {}
+
+        return pos_args, kw_args
 
 
 class CommandGroup(Command):
