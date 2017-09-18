@@ -158,6 +158,9 @@ class Command:
             has_kw = True
 
             for i, kw in enumerate(args):
+                if i + 1 > len(ctx_kw):
+                    break
+
                 arg_type = kw[1].annotation if kw[1].annotation != EMPTY else str
                 arg_type = arg_type._subs_tree()[1:] if IS_UNION(arg_type) else arg_type
 
