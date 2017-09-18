@@ -46,6 +46,8 @@ class Command:
         """
         sig = inspect.signature(self.func)
 
+        print(self.name)
+
         if not self.usage and list(sig.parameters.items())[2:]:
             func_args = list(sig.parameters.items())[2:]
             usage = ''
