@@ -6,10 +6,10 @@ import inspect
 class InvalidArg:
     def __init__(self, expected: str, example: str=None):
         self.expected = expected
-        self.message = f'Invalid argument type. Expected `{self.expected}`.'
+        self.message = f'Invalid argument type. Expected "{self.expected}".'
 
         if example:
-            self.message += f'\n**Example:** `{example}`'
+            self.message += f'\nExample: "{example}""'
 
     def __bool__(self):
         return False
@@ -35,7 +35,7 @@ class Converters:
             discord.VoiceChannel: self.convert_to_voice_channel,
             discord.Role: self.convert_to_role
         }
-        self.arg_complaints = {
+        self.complaints = {
             str: InvalidArg('string', 'hello, "hello there"'),
             int: InvalidArg('number', '10, 0, 400, -5'),
             float: InvalidArg('decimal', '0.5, 3.1415, -5.25'),
@@ -66,13 +66,13 @@ class Converters:
         try:
             return int(arg)
         except ValueError:
-            return self.arg_complaints[int]
+            return self.complaints[int]
 
     async def convert_to_float(self, arg):
         try:
             return float(arg)
         except ValueError:
-            return self.arg_complaints[float]
+            return self.complaints[float]
 
     async def convert_to_bool(self, arg):
         if arg.lower() in ('yes', 'y', 'true', 't', '1', 'enable', 'on', 'affirmative', '+'):
@@ -80,13 +80,13 @@ class Converters:
         elif arg.lower() in ('no', 'n', 'false', 'f', '0', 'disable', 'off', 'negative', '-'):
             return False
         else:
-            return self.arg_complaints[bool]
+            return self.complaints[bool]
 
     async def convert_to_member(self, ctx, arg):
         member = await self.lookups.member_lookup(ctx, arg, not_found_msg=False, suppress_error_msgs=True)
 
         if not member:
-            return self.arg_complaints[discord.Member]
+            return self.complaints[discord.Member]
         else:
             return member
 
@@ -94,7 +94,7 @@ class Converters:
         channel = await self.lookups.channel_lookup(ctx, arg, not_found_msg=False, suppress_error_msgs=True)
 
         if not channel:
-            return self.arg_complaints[discord.TextChannel]
+            return self.complaints[discord.TextChannel]
         else:
             return channel
 
@@ -103,7 +103,7 @@ class Converters:
                                                     voice_only=True)
 
         if not channel:
-            return self.arg_complaints[discord.VoiceChannel]
+            return self.complaints[discord.VoiceChannel]
         else:
             return channel
 
@@ -111,6 +111,6 @@ class Converters:
         role = await self.lookups.role_lookup(ctx, arg, not_found_msg=False, suppress_error_msgs=True)
 
         if not role:
-            return self.arg_complaints[discord.Role]
+            return self.complaints[discord.Role]
         else:
             return role

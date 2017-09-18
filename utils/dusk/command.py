@@ -3,6 +3,11 @@ from .context import Context
 from utils.arg_converters import InvalidArg
 import inspect
 
+POS = inspect.Parameter.VAR_POSITIONAL
+KW = inspect.Parameter.KEYWORD_ONLY
+EMPTY = inspect.Parameter.empty
+IS_UNION = lambda x: x.__class__.__name__ == '_Union'  # noqa (I ain't dealing with ur crap flake8)
+
 
 class Command:
     """Represents a command."""
@@ -77,7 +82,7 @@ class Command:
             if len(sig) == 2:
                 await self.func(self.cls, ctx)
             else:
-                args, kwargs = await self.process_extra_args(ctx)
+                args, kwargs = await self.proc_args(ctx)
 
                 # Processing arguments most likely failed. Return so that the command doesn't get triggered.
                 if not args and not kwargs:
@@ -103,7 +108,7 @@ class Command:
                 if len(sig) == 2:
                     await self.func(self.cls, ctx)
                 else:
-                    args, kwargs = await self.process_extra_args(ctx)
+                    args, kwargs = await self.proc_args(ctx)
 
                     # Processing arguments most likely failed. Return so that the command doesn't get triggered.
                     if not args and not kwargs:
@@ -111,162 +116,95 @@ class Command:
 
                     await self.func(self.cls, ctx, *args, **kwargs)
 
-    async def process_extra_args(self, ctx: Context) -> Tuple[list, dict]:
-        """
-        Processes extra arguments for commands that need them, obeying types and defaults.
-        Any arguments that do not have a type hint will be defaulted to `str`.
+    async def proc_args(self, ctx: Context):
+    """
+    Proccess extra arguments for the command if it has them, obeying the types and defaults that have them.
+    Any arguments that do not have a type hint will be automatically defaulted to `str`.
 
-        Should work for commands like this:
-            async def command(self, ctx, *foo: int)
-            async def command(self, ctx, *, kw_arg_one: discord.Member, kw_arg_two: int=None, etc)
-            async def command(self, ctx, *bunch_of_numbers: int, kw_arg_one: discord.Channel, kw_arg_two: whatever)
+    There shouldn't be any real reason to use this on your own.
+    """
+    args = list(inspect.signature(self.func).parameters.items())[2:]  # Stupid iterator subclass things
+    pos_args = []
+    kw_args = {}
+    amethyst = self.cls.amethyst  # noqa Maybe find some better way of getting an Amethyst instance or converters, this is too reliant on the end user.
+    has_pos = False
+    has_kw = False
 
-        Probably best to not use this by itself unless you know what you're doing.
-        """
-        func_args = list(inspect.signature(self.func).parameters.items())[2:]  # Get all extra args from func.
-        varargs = []
-        kwargs = {}
-        amethyst = self.cls.amethyst
+    if not args:
+        return [], {}
 
-        # Logic for if there is a vararg parameter (eg. *args)
-        if func_args[0][1].kind == inspect.Parameter.VAR_POSITIONAL:
-            # Get kwargs without the vararg and vice-versa
-            kw_args = func_args[1:]
-            var_args = func_args[0][1]
-            # Get last n args as the kwargs, with the rest being used for varargs
-            if kw_args:
-                ctx_kw_args = ctx.args[-len(kw_args):]
-                ctx_var_args = ctx.args[:-len(kw_args)]
-            else:
-                ctx_var_args = ctx.args
-            # Get wanted type from annotation, otherwise default to str
-            var_arg_cls = var_args.annotation if var_args.annotation is not inspect.Parameter.empty else str
+    # Multi positional arguments (*varargs)
+    if args[0][1].kind == POS:
+        has_pos = True
+        arg = args.pop(0)
+        ctx_pos = ctx.args[:-len(args)]
+        arg_type = arg[1].annotation if arg[1].annotation is not EMPTY else str
+        arg_type = arg_type._subs_tree()[1:] if IS_UNION(arg_type) else arg_type
 
-            # Convert varargs
-            for arg in ctx_var_args:
-                # Handle Union types
-                if var_arg_cls.__class__.__name__ == '_Union':
-                    # Gotta love the ol' dir(class) to find internal methods
-                    union_types = var_arg_cls._subs_tree()[1:]
+        for pos in ctx_pos:
+            if type(arg_type) == list:  # Union
+                for utype in arg_type:
+                    _arg = await amethyst.converters.convert_arg(ctx, pos, utype)
 
-                    for utype in union_types:
-                        arg = await amethyst.converters.convert_arg(ctx, arg, utype)
-
-                        if arg or arg is False:
-                            break
-                else:
-                    arg = await amethyst.converters.convert_arg(ctx, arg, var_arg_cls)
-
-                varargs.append(arg)
-
-            # Convert kwargs
-            if kw_args:
-                for arg in ctx_kw_args:
-                    i = ctx_kw_args.index(arg)
-                    kw_arg = kw_args[i][1]
-                    arg_cls = kw_arg.annotation if kw_arg.annotation is not inspect.Parameter.empty else str
-
-                    # Handle Union types
-                    if arg_cls.__class__.__name__ == '_Union':
-                        # Gotta love the ol' dir(class) to find internal methods
-                        union_types = arg_cls._subs_tree()[1:]
-
-                        for utype in union_types:
-                            arg = await amethyst.converters.convert_arg(ctx, arg, utype)
-
-                            if arg or arg is False:
-                                break
-                    else:
-                        arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
-
-                    kwargs[kw_args[i][0]] = arg
-        else:
-            ctx_kw_args = ctx.args[:len(func_args)]
-
-            for arg in ctx_kw_args:
-                i = ctx_kw_args.index(arg)
-                kw_arg = func_args[i][1]
-                arg_cls = kw_arg.annotation if kw_arg.annotation is not inspect.Parameter.empty else str
-
-                # Handle Union types
-                if arg_cls.__class__.__name__ == '_Union':
-                    # Gotta love the ol' dir(class) to find internal methods
-                    union_types = arg_cls._subs_tree()[1:]
-
-                    for utype in union_types:
-                        arg = await amethyst.converters.convert_arg(ctx, arg, utype)
-
-                        if arg or arg is False:
-                            break
-                else:
-                    arg = await amethyst.converters.convert_arg(ctx, arg, arg_cls)
-
-                kwargs[func_args[i][0]] = arg
-
-        # If the first argument is a vararg, and it doesn't have a default, and it has an annotation,
-        # handle invalid arguments  # HAHA FUCK YOU PEP8 LET ME HAVE LONG ASS COMMENTS
-        if (func_args[0][1].kind == inspect.Parameter.VAR_POSITIONAL and
-                func_args[0][1].default is inspect.Parameter.empty and
-                func_args[0][1].annotation is not inspect.Parameter.empty):
-            expected_type = func_args[0][1].annotation
-            # Get any invalid varargs
-            invalid_type_varargs = [x for x in varargs if not isinstance(x, expected_type)]
-
-            if not varargs or invalid_type_varargs:
-                invalid_msg = amethyst.converters.arg_complaints[expected_type]
-
-                await ctx.send(invalid_msg)
-
-                return [], {}
-
-        # Ditto for kwargs
-        if kwargs:
-            all_kw_args = [x for x in func_args if x[1].kind == inspect.Parameter.KEYWORD_ONLY]
-
-            if len(kwargs) == len(all_kw_args):
-                first_invalid = None
-
-                for arg in all_kw_args:
-                    if arg[1].annotation is inspect.Parameter.empty:
-                        continue
-
-                    i = all_kw_args.index(arg)
-
-                    if not isinstance(list(kwargs.items())[i][1], arg[1].annotation):
-                        first_invalid = i
+                    if _arg or _arg is False:
                         break
-
-                if first_invalid is not None:
-                    user_arg = list(kwargs.items())[i]
-                    wanted_type = all_kw_args[i].annotation
-
-                    if isinstance(user_arg[1], InvalidArg):
-                        await ctx.send(f'Error for argument `{user_arg[0]}` for command `{ctx.cmd}`:\n{user_arg[1]}')
-
-                        return [], {}
-                    else:
-                        invalid_msg = amethyst.converters.arg_complaints[wanted_type]
-
-                        await ctx.send(f'Error for argument `{user_arg[0]}` for command `{ctx.cmd}`:\n{invalid_msg}')
-
-                        return [], {}
             else:
-                missing_args = all_kw_args[len(kwargs):]
-                missing_arg = None
+                _arg = await amethyst.converters.convert_arg(ctx, pos, arg_type)
 
-                for arg in missing_args:
-                    if arg[1].default is inspect.Parameter.empty:
-                        missing_arg = arg
+            pos_args.append(_arg)
+
+    # Keyword arguments (*, kwarg=None)
+    if args and args[0][1].kind == KW:
+        ctx_kw = ctx.args[-len(args):] if has_pos else ctx.args
+        has_kw = True
+
+        for i, kw in enumerate(args):
+            arg_type = kw[1].annotation if kw[1].annotation != EMPTY else str
+            arg_type = arg_type._subs_tree()[1:] if IS_UNION(arg_type) else arg_type
+
+            if type(arg_type) == list:  # Union
+                for utype in arg_type:
+                    _arg = await amethyst.converters.convert_arg(ctx, ctx_kw[i], utype)
+
+                    if _arg or _arg is False:
                         break
+            else:
+                _arg = await amethyst.converters.convert_arg(ctx, ctx_kw[i], arg_type)
 
-                if missing_arg is None:
-                    return varargs, kwargs
-                else:
-                    await ctx.send(f'Missing argument `{missing_arg[1].name}`.')
+            kw_args[kw[0]] = _arg
+    else:
+        raise ValueError(f'Unknown or unsupported argument type: {args[0][1].kind.name}')
 
-                    return [], {}
+    # Handle any positional arguments that have the wrong type.
+    # Blame flake8 for the shitty indentation
+    if has_pos and arg[1].annotation not in (EMPTY, str) and ([x for x in pos_args if not isinstance(x,
+                                                            arg[1].annotation)] or not pos_args):
+        await ctx.send(amethyst.converters.complaints[arg[1].annotation])
+        return [], {}
 
-        return varargs, kwargs
+    # Handle keyword arguments with wrong types.
+    if has_kw and len(kw_args) == len(args):
+        invalids = [arg for arg in args if arg[1].annotation != EMPTY and
+                    not isinstance(kw_args[arg[0]], arg[1].annotation)]
+
+        if invalids:
+            first = invalids[0]
+            msg = amethyst.converters.complaints[first[1].annotation]
+
+            await ctx.send(f'Error for argument `{first[1]}` for command `{ctx.cmd}`\n```{msg}```')
+            return [], {}
+    elif has_kw:  # Handle missing arguments that do not have a default.
+        missing_args = [x for x in args[len(kw_args):] if x[1].default == EMPTY]
+
+        if missing_args:
+            first = missing_args[0]
+            atype = first[1].annotation if first[1].annotation != EMPTY else str
+            atype = amethyst.converters.complaints[atype].expected
+
+            await ctx.send(f'Missing argument `{first[0]}` for command `{ctx.cmd}`.\nThis should be a {atype}')
+            return [], {}
+
+    return pos_args, kw_args
 
 
 class CommandGroup(Command):
@@ -312,7 +250,7 @@ class CommandGroup(Command):
                 if len(sig) == 2:
                     await self.func(self.cls, ctx)
                 else:
-                    args, kwargs = await self.process_extra_args(ctx)
+                    args, kwargs = await self.proc_args(ctx)
 
                     if not args and not kwargs:
                         return
@@ -337,7 +275,7 @@ class CommandGroup(Command):
                     if len(sig) == 2:
                         await self.func(self.cls, ctx)
                     else:
-                        args, kwargs = await self.process_extra_args(ctx)
+                        args, kwargs = await self.proc_args(ctx)
 
                         if not args and not kwargs:
                             return
