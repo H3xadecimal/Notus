@@ -78,7 +78,7 @@ class Utilities:
             await ctx.send('Added owners.')
 
     @utils_set.command(name="avatar")
-    async def utils_set_avatar(self, ctx, url=None):
+    async def utils_set_avatar(self, ctx, *, url=None):
         """Changes the bots avatar"""
         if url:
             if not ctx.msg.attachments:
