@@ -179,6 +179,8 @@ class Core:
         except discord.HTTPException:
             await ctx.msg.channel.trigger_typing()
             await ctx.send("Output was too big to be printed.")
+        # Eval code provided by Pandentia over at Thessia.
+        # More of his work here: https://github.com/Pandentia
 
 def setup(amethyst):
     return Core(amethyst)
