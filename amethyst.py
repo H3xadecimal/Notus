@@ -46,7 +46,7 @@ try:
                                    db=args.db,
                                    password=args.password)
 except:
-    print('aaaaaaa unable to redis 404')
+    print('Unable to connect to Redis.')
     exit(2)
 
 
