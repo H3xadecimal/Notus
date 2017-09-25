@@ -62,6 +62,7 @@ class Amethyst(discord.Client):
         self.settings = self.data.load('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
         self.holder = dusk.CommandHolder(self)
+        self.commands = self.holder
         self.converters = arg_converters.Converters(self)
         self.session = aiohttp.ClientSession()
 
