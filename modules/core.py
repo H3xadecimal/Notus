@@ -117,7 +117,6 @@ class Core:
             self._eval['count'] = 0
         
         self._eval['env'].update({
-            'self': self.amethyst,
             'lookups': self.lookups,
             'ctx': ctx,
             'message': ctx.msg,
@@ -181,6 +180,8 @@ class Core:
             await ctx.msg.channel.trigger_typing()
             await ctx.send('Output was too big to be printed.')
 
+        # Eval code provided by Pandentia over at Thessia.
+        # More of his work here: https://github.com/Pandentia
 
 def setup(amethyst):
     return Core(amethyst)
