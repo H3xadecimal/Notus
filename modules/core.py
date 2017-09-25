@@ -117,7 +117,6 @@ class Core:
             self._eval['count'] = 0
         
         self._eval['env'].update({
-            'self': self.amethyst,
             'lookups': self.lookups,
             'ctx': ctx,
             'message': ctx.msg,
