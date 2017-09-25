@@ -2,7 +2,6 @@ from utils.dusk import command
 from utils import confirm
 from utils.lookups import Lookups
 import discord
-import inspect
 import traceback
 import time
 import textwrap
@@ -107,7 +106,7 @@ class Core:
         """Shuts down the bot.... Duh."""
         await ctx.send("Logging out...")
         await self.amethyst.logout()
-    
+
     @command(aliases=['debug'], usage='<code>')
     @confirm.instance_owner()
     async def eval(self, ctx):
