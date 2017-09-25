@@ -124,17 +124,15 @@ class Core:
             'channel': ctx.msg.channel,
             'guild': ctx.msg.guild,
             'server': ctx.msg.guild,
-            'author': ctx.msg.author,
-            
+            'author': ctx.msg.author
         })
 
         # let's make this safe to work with
         code = ctx.suffix.replace('```py\n', '').replace('```', '').replace('`', '')
-
-        _code = 'async def func(self):\n  try:\n{}\n  finally:\n    self._eval[\'env\'].update(locals())'\
-            .format(textwrap.indent(code, '    '))
-
+        _code = "async def func(self):\n  try:\n{}\n  finally:\n    self._eval['env'].update(locals())"\
+                .format(textwrap.indent(code, '    '))
         before = time.monotonic()
+
         # noinspection PyBroadException
         try:
             exec(_code, self._eval['env'])
@@ -146,11 +144,12 @@ class Core:
                 output = repr(output)
         except Exception as e:
             output = '{}: {}'.format(type(e).__name__, e)
+
         after = time.monotonic()
         self._eval['count'] += 1
         count = self._eval['count']
-
         code = code.split('\n')
+
         if len(code) == 1:
             _in = 'In [{}]: {}'.format(count, code[0])
         else:
@@ -163,9 +162,11 @@ class Core:
             _in = 'In [{}]: {}\n{}'.format(count, _first_line, _rest)
 
         message = '```py\n{}'.format(_in)
+        ms = int(round((after - before) * 1000))
+
         if output is not None:
             message += '\nOut[{}]: {}'.format(count, output)
-        ms = int(round((after - before) * 1000))
+
         if ms > 100:  # noticeable delay
             message += '\n# {} ms\n```'.format(ms)
         else:
@@ -173,12 +174,13 @@ class Core:
 
         try:
             if ctx.msg.author.id == self.amethyst.user.id:
-                await ctx.message.edit(content=message)
+                await ctx.msg.edit(content=message)
             else:
                 await ctx.send(message)
         except discord.HTTPException:
             await ctx.msg.channel.trigger_typing()
-            await ctx.send("Output was too big to be printed.")
+            await ctx.send('Output was too big to be printed.')
+
 
 def setup(amethyst):
     return Core(amethyst)
