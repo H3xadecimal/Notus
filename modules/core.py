@@ -114,7 +114,7 @@ class Core:
             self._eval['env'] = {}
         if self._eval.get('count') is None:
             self._eval['count'] = 0
-        
+
         self._eval['env'].update({
             'lookups': self.lookups,
             'ctx': ctx,
@@ -181,6 +181,7 @@ class Core:
 
         # Eval code provided by Pandentia over at Thessia.
         # More of his work here: https://github.com/Pandentia
+
 
 def setup(amethyst):
     return Core(amethyst)
