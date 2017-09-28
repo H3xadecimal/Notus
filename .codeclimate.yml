@@ -12,5 +12,8 @@ engines:
       - python
   fixme:
       enabled: true
-  exclude_paths:
-      - utils/*
+ratings:
+  paths:
+  - "**.py"
+exclude_paths:
+- utils/*
