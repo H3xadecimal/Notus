@@ -12,3 +12,5 @@ engines:
       - python
   fixme:
       enabled: true
+  ignore:
+      - ./utils/**/*.py
