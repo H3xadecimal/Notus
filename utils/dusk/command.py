@@ -175,7 +175,7 @@ class Command:
 
                 kw_args[kw[0]] = _arg
         else:
-            raise ValueError(f'Unknown or unsupported argument type: {args[0][1].kind.name}')
+            raise ValueError(f'Unknown or unsupported argument type for "{args[0][1].name}": {args[0][1].kind.name}')
 
         # Handle any positional arguments that have the wrong type.
         # Blame flake8 for the shitty indentation
