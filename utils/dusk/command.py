@@ -4,6 +4,7 @@ import inspect
 
 POS = inspect.Parameter.VAR_POSITIONAL
 KW = inspect.Parameter.KEYWORD_ONLY
+BOTH = inspect.parameter.POSITIONAL_OR_KEYWORD
 EMPTY = inspect.Parameter.empty
 IS_UNION = lambda x: x.__class__.__name__ == '_Union'  # noqa (I ain't dealing with ur crap flake8)
 
@@ -153,7 +154,7 @@ class Command:
                 pos_args.append(_arg)
 
         # Keyword arguments (*, kwarg=None)
-        if args and args[0][1].kind == KW:
+        if args and args[0][1].kind in (KW, BOTH):
             ctx_kw = ctx.args[-len(args):] if has_pos else ctx.args
             has_kw = True
 
