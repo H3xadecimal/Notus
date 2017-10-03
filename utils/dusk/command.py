@@ -4,7 +4,7 @@ import inspect
 
 POS = inspect.Parameter.VAR_POSITIONAL
 KW = inspect.Parameter.KEYWORD_ONLY
-BOTH = inspect.parameter.POSITIONAL_OR_KEYWORD
+BOTH = inspect.Parameter.POSITIONAL_OR_KEYWORD
 EMPTY = inspect.Parameter.empty
 IS_UNION = lambda x: x.__class__.__name__ == '_Union'  # noqa (I ain't dealing with ur crap flake8)
 
