@@ -1,6 +1,5 @@
 ![Amethyst](amethyst-logo.png) 
 
-[![Build Status](https://jenkins.pandentia.cf/buildStatus/icon?job=Amethyst/developer_build)](https://jenkins.pandentia.cf/view/Hexadecimal's%20Projects/job/Amethyst/job/developer_build/)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/awau/Amethyst/developer_build/LICENSE)
 <a href="https://discord.gg/5sHTkKq"><img src="https://discordapp.com/api/guilds/251664386459041792/embed.png" alt="Discord server" /></a> 
 
