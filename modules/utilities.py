@@ -80,15 +80,15 @@ class Utilities:
     @utils_set.command(name="avatar")
     async def utils_set_avatar(self, ctx, *, url=None):
         """Changes the bots avatar"""
-        if url:
+        if not url:
             if not ctx.msg.attachments:
-                return await ctx.send("No avatar found! "
-                                      "Provide an URL or attachment!")
+                return await ctx.send("No avatar found! Provide an URL or attachment!")
             else:
                 url = ctx.msg.attachments[0].url
 
         ext = url.split(".")[-1]
         mime = mimetypes.types_map.get(ext)
+
         if mime is not None and not mime.startswith("image"):
             # None can still be an image
             return await ctx.send("URL or attachment is not an Image!")
@@ -97,8 +97,7 @@ class Utilities:
             if 200 <= r.status < 300:
                 content = await r.read()
             else:
-                return await ctx.send("Invalid response code: {}"
-                                      .format(r.status_code))
+                return await ctx.send("Invalid response code: {}".format(r.status_code))
 
         try:
             await self.amethyst.user.edit(avatar=content)
