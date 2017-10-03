@@ -86,23 +86,24 @@ class Utilities:
             else:
                 url = ctx.msg.attachments[0].url
 
-        ext = url.split(".")[-1]
-        mime = mimetypes.types_map.get(ext)
+        async with ctx.typing():
+            ext = url.split(".")[-1]
+            mime = mimetypes.types_map.get(ext)
 
-        if mime is not None and not mime.startswith("image"):
-            # None can still be an image
-            return await ctx.send("URL or attachment is not an Image!")
+            if mime is not None and not mime.startswith("image"):
+                # None can still be an image
+                return await ctx.send("URL or attachment is not an Image!")
 
-        async with aiohttp.ClientSession() as s, s.get(url) as r:
-            if 200 <= r.status < 300:
-                content = await r.read()
-            else:
-                return await ctx.send("Invalid response code: {}".format(r.status_code))
+            async with aiohttp.ClientSession() as s, s.get(url) as r:
+                if 200 <= r.status < 300:
+                    content = await r.read()
+                else:
+                    return await ctx.send("Invalid response code: {}".format(r.status_code))
 
-        try:
-            await self.amethyst.user.edit(avatar=content)
-        except BaseException:  # I don't know the exact Exception type
-            return await ctx.send("Avatar was too big or not an image!")
+            try:
+                await self.amethyst.user.edit(avatar=content)
+            except BaseException:  # I don't know the exact Exception type
+                return await ctx.send("Avatar was too big or not an image!")
 
         await ctx.send("Successfully updated avatar!")
 
