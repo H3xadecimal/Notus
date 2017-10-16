@@ -73,9 +73,9 @@ class Utilities:
         self.settings['owners'] += owners
 
         if len(owners) == 1:
-            await ctx.send('Added owner.')
+            await ctx.send('Set other owner.')
         else:
-            await ctx.send('Added owners.')
+            await ctx.send('Set other owners.')
 
     @utils_set.command(name="avatar")
     async def utils_set_avatar(self, ctx, *, url=None):
