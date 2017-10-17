@@ -86,8 +86,6 @@ class Lookups:
                     return member[0]
                 else:
                     return None
-
-                return self.amethyst.get_user(id)
             else:
                 member = [m for m in ctx.msg.guild.members if m.id == id]
 
