@@ -57,7 +57,7 @@ class Converters:
 
         converter = self.converter_map[type]
 
-        if len(inspect.getargspec(converter).args) == 2:
+        if len(inspect.getfullargspec(converter).args) == 2:
             return await converter(arg)
         else:
             return await converter(ctx, arg)
