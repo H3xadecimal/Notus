@@ -47,15 +47,15 @@ class Converters:
             discord.Role: InvalidArg('role', '@example, example, 1234567890 (id)')
         }
 
-    async def convert_arg(self, ctx, arg, type):
+    async def convert_arg(self, ctx, arg, _type):
         """Converts an argument into the given type."""
-        if type not in self.converter_map and type is not str:
+        if _type not in self.converter_map and _type is not str:
             raise NotImplementedError()
 
-        if type is str:
+        if _type is str:
             return arg
 
-        converter = self.converter_map[type]
+        converter = self.converter_map[_type]
 
         if len(inspect.getfullargspec(converter).args) == 2:
             return await converter(arg)
