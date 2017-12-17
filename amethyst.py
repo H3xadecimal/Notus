@@ -23,7 +23,7 @@ redis_port = int(config.get('AMETHYST_REDIS_PORT', 6379))
 redis_db = int(config.get('AMETHYST_REDIS_DB', 0))
 token = config.get('AMETHYST_TOKEN')
 prefixes = config.get('AMETHYST_PREFIXES', [])
-tagline = config.get('AMETHYST_TAGLINE', '{} is an instance of Amethyst, learn more about the project at'
+tagline = config.get('AMETHYST_TAGLINE', '{} is an instance of Amethyst, learn more about the project at '
                      'https://github.com/awau/Amethyst')
 
 # CMD-L Arguments
@@ -58,126 +58,21 @@ class Amethyst(discord.Client):
         self.data = DataManager(self.redis)
         self.owner = None
         self.config = config
-        self.send_command_help = self.send_cmd_help
         self.settings = self.data.load('settings')
         self.blacklist_check = self.loop.create_task(self.blacklist_check())
         self.holder = dusk.CommandHolder(self)
         self.commands = self.holder
         self.converters = arg_converters.Converters(self)
         self.session = aiohttp.ClientSession()
+        self.send_cmd_help = self.holder.send_cmd_help
+        self.send_command_help = self.send_cmd_help
+        self.tagline = tagline
 
     async def blacklist_check(self):
         if 'blacklist' not in self.settings:
             self.settings['blacklist'] = []
         else:
             pass
-
-    async def send_cmd_help(self, ctx):
-        paginator = Paginator()
-
-        if len(ctx.cmd.split(' ')) != 2:
-            cmd = self.holder.get_command(ctx.cmd)
-
-            if not cmd:
-                return await ctx.send('Unknown command.')
-
-            if cmd.name == 'help':
-                longest_cmd = sorted(self.holder.all_commands, key=len, reverse=True)[0]
-                modules = set([self.holder.get_command(x).cls.__class__.__name__ for x in self.holder.commands])
-                modules = sorted(modules)
-
-                paginator.add_line(tagline.format(self.user.name), empty=True)
-
-                for module in modules:
-                    module_commands = [self.holder.get_command(x) for x in self.holder.commands if
-                                       self.holder.get_command(x).cls.__class__.__name__ == module and
-                                       not self.holder.get_command(x).parent]
-
-                    if str(ctx.msg.author.id) not in self.owners:
-                        module_commands = [x for x in module_commands if not x.hidden]
-
-                    if module_commands:
-                        paginator.add_line(module + ':')
-                        module_commands = sorted(module_commands, key=lambda x: x.name)
-
-                        for cmd in module_commands:
-                            spacing = ' ' * (len(longest_cmd) - len(cmd.name) + 1)
-                            line = f'  {cmd.name}{spacing}{cmd.short_description}'
-
-                            if len(line) > 80:
-                                line = line[:77] + '...'
-
-                            paginator.add_line(line)
-
-                paginator.add_line('')
-                paginator.add_line(f'Type {prefixes[0]}help command for more info on a command.')
-
-                if len(prefixes) > 1:
-                    extra_prefixes = ', '.join([f'"{x}"' for x in prefixes[1:]])
-
-                    paginator.add_line(f'Additional prefixes include: {extra_prefixes}')
-
-                for page in paginator.pages:
-                    await ctx.send(page, dest='author')
-                    await asyncio.sleep(.333)
-            else:
-                if hasattr(cmd, 'commands'):  # Command is a group. Display main help-like message.
-                    longest_cmd = sorted(cmd.commands, key=lambda x: len(x.name), reverse=True)[0].name
-                    commands = sorted(cmd.commands, key=lambda x: x.name)
-
-                    paginator.add_line(prefixes[0] + cmd.name, empty=True)
-                    paginator.add_line(cmd.description, empty=True)
-                    paginator.add_line('Commands:')
-
-                    for command in commands:
-                        spacing = ' ' * (len(longest_cmd) - len(command.name) + 1)
-                        line = f'  {command.name}{spacing}{command.short_description}'
-
-                        paginator.add_line(line)
-
-                    paginator.add_line('')
-
-                    if cmd.aliases:
-                        aliases = ', '.join(cmd.aliases)
-                        paginator.add_line(f'Aliases for this command are: {aliases}')
-
-                    paginator.add_line(f'Type {prefixes[0]}{cmd.name} command to run the command.')
-
-                    for page in paginator.pages:
-                        await ctx.send(page)
-                        await asyncio.sleep(.333)
-                else:
-                    paginator.add_line(prefixes[0] + cmd.name + ' ' + cmd.usage, empty=True)
-                    paginator.add_line(cmd.description)
-
-                    if cmd.aliases:
-                        aliases = ', '.join(cmd.aliases)
-
-                        paginator.add_line('')
-                        paginator.add_line(f'Aliases for this command are: {aliases}')
-
-                    for page in paginator.pages:
-                        await ctx.send(page)
-                        await asyncio.sleep(.333)
-        else:
-            parent = self.holder.get_command(ctx.cmd.split(' ')[0])
-            child = parent.all_commands.get(ctx.cmd.split(' ')[1])
-
-            if not child:
-                return await ctx.send('Unknown subcommand.')
-
-            paginator.add_line(prefixes[0] + ctx.cmd + ' ' + child.usage, empty=True)
-            paginator.add_line(child.description)
-
-            if child.aliases:
-                aliases = ', '.join(child.aliases)
-
-                paginator.add_line('')
-                paginator.add_line(f'Aliases for this command are: {aliases}')
-
-            for page in paginator.pages:
-                await ctx.send(page)
-                await asyncio.sleep(.333)
 
     async def on_ready(self):
         self.redis.set('__info__', 'This database is being used by the Amethyst Framework.')

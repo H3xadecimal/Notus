@@ -1,11 +1,40 @@
 from typing import Union, List
+from discord.ext.commands import Paginator
 from .command import Command, CommandGroup
 from .context import Context
 import importlib
+import asyncio
 import sys
 import re
 
 HIDDEN_RE = re.compile(r'^__?.*(?:__)?$')
+
+
+async def handle_groups(self, paginator, ctx, cmd):
+    longest = sorted(cmd.all_commands.values(), key=lambda x: len(x.name))[-1].name
+    commands = sorted(cmd.all_commands.values(), key=lambda x: x.name)
+
+    paginator.add_line(self.amethyst.config['AMETHYST_PREFIXES'][0] + cmd.name, empty=True)
+    paginator.add_line(cmd.description or 'No description.', empty=True)
+    paginator.add_line('Commands:')
+
+    for cmd_ in commands:
+        spacing = ' ' * (len(longest) - len(cmd_.name) + 1)
+        line = f'  {cmd_.name}{spacing}{cmd_.short_description}'
+
+        paginator.add_line(line)
+
+    paginator.add_line('')
+
+    if cmd.aliases:
+        aliases = ', '.join(cmd.aliases)
+        paginator.add_line(f'Aliases for this command are: {aliases}')
+
+    paginator.add_line(f"Type {self.amethyst.config['AMETHYST_PREFIXES'][0]}{cmd.name} command, to run the command.")
+
+    for page in paginator.pages:
+        await ctx.send(page)
+        await asyncio.sleep(.3333)
 
 
 class CommandHolder:
@@ -111,13 +140,108 @@ class CommandHolder:
             self.commands[cmd_name] if cmd_name in self.commands else None  # I wanted this to line up but fuck u pep8
 
     async def run_command(self, ctx: Context) -> None:
-
         cmd = self.get_command(ctx.cmd)
 
         if not cmd:
             return
 
         await cmd.run(ctx)
+
+    async def send_cmd_help(self, ctx):
+        """Sends the help for a command."""
+        paginator = Paginator()
+        prefixes = self.amethyst.config['AMETHYST_PREFIXES']
+
+        if ' ' not in ctx.cmd:
+            # Handle lone commands.
+            cmd = self.get_command(ctx.cmd)
+
+            if not cmd:
+                return await ctx.send('Unknown command.')
+
+            if cmd.name == 'help':
+                # Show special block for help.
+                longest = sorted(self.commands.values(), key=lambda x: len(x.name))[-1].name
+                modules = set([self.get_command(x).cls.__class__.__name__ for x in self.commands])
+                modules = sorted(modules)
+
+                paginator.add_line(self.amethyst.tagline.format(self.amethyst.user.name), empty=True)
+
+                for module in modules:
+                    commands = [x for x in self.commands.values() if x.cls.__class__.__name__ == module and not x.parent]
+                    commands = sorted(commands, key=lambda x: x.name)
+
+                    if str(ctx.msg.author.id) not in self.amethyst.owners:
+                        commands = [x for x in commands if not x.hidden]
+
+                    if commands:
+                        paginator.add_line(module + ':')
+
+                        for cmd_ in commands:
+                            spacing = ' ' * (len(longest) - len(cmd_.name) + 1)
+                            line = f'  {cmd_.name}{spacing}{cmd_.short_description}'
+
+                            if len(line) > 80:
+                                line = line[:77] + '...'
+
+                            paginator.add_line(line)
+
+                paginator.add_line('')
+                paginator.add_line(f'Type {prefixes[0]}help command for more info on a command.')
+
+                if len(prefixes) > 1:
+                    extra_prefixes = ', '.join(f'"{x}"' for x in prefixes[1:])
+
+                    paginator.add_line(f'Additional prefixes include: {extra_prefixes}')
+
+                for page in paginator.pages:
+                    await ctx.send(page, dest='author')
+                    await asyncio.sleep(.333)
+            else:
+                if hasattr(cmd, 'commands'):
+                    # Command is a group, display main help-like message.
+                    await handle_groups(self, paginator, ctx, cmd)
+                else:
+                    # Regular command
+                    paginator.add_line(f'{prefixes[0]}{cmd.name} {cmd.usage}', empty=True)
+                    paginator.add_line(cmd.description or 'No description.')
+
+                    if cmd.aliases:
+                        aliases = ', '.join(cmd.aliases)
+
+                        paginator.add_line('')
+                        paginator.add_line(f'Aliases for this command are: {aliases}')
+
+                    for page in paginator.pages:
+                        await ctx.send(page)
+                        await asyncio.sleep(.333)
+        else:
+            # Handles groups specially.
+            cmds = ctx.cmd.split(' ')
+            last = self.get_command(cmds[0])
+
+            for cmd in cmds[1:]:
+                if not cmd in last.all_commands:
+                    return await ctx.send('Unknown command.')
+
+                last = last.all_commands[cmd]
+
+            paginator.add_line(f'{prefixes[0]}{ctx.cmd} {last.usage}', empty=True)
+            paginator.add_line(last.description or 'No description.')
+
+            if hasattr(last, 'commands'):
+                # Handle groups
+                return await handle_groups(self, paginator, ctx, last)
+
+            if last.aliases:
+                aliases = ', '.join(last.aliases)
+
+                paginator.add_line('')
+                paginator.add_line(f'Aliases for this command are: {aliases}')
+
+            for page in paginator.pages:
+                await ctx.send(page)
+                await asyncio.sleep(.333)
 
     @property
     def all_commands(self) -> List[str]:
