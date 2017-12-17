@@ -2,6 +2,6 @@ config.json
 pm2.json
 .sync/*
 logs/*
-*/__pycache__/*
+**/__pycache__
 *.rdb
 .vscode/*
