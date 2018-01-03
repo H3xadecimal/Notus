@@ -1,7 +1,7 @@
-Amethyst License
-Revision 1
+Amethyst Public License (APL)
+Revision 1.1
 
-Copyright Hexadecimal (c) 2017.
+Copyright Hexadecimal (c) 2017-2018.
 
 Permission is granted to use, modify, integrate, redistribute, etc., the source code of this program
 in any way you like - except as stated below - so long as the original copyright notice and license
