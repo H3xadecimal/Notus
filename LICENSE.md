@@ -1,4 +1,4 @@
-Amethyst Public License (APL)  
+Amethyst Public License  
 Revision 1.1
 
 Copyright Hexadecimal (c) 2017-2018.
