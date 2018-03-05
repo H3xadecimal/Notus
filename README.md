@@ -1,6 +1,6 @@
 ![Amethyst](amethyst-logo.png) 
 
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/awau/Amethyst/developer_build/LICENSE)
+[![GitHub license](https://img.shields.io/badge/license-Amethyst_Public_License-blue.svg)](https://raw.githubusercontent.com/awau/Amethyst/developer_build/LICENSE)
 <a href="https://discord.gg/5sHTkKq"><img src="https://discordapp.com/api/guilds/251664386459041792/embed.png" alt="Discord server" /></a> 
 
 # Amethyst (Developer Build)
