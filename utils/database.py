@@ -1,9 +1,13 @@
-from typing import Any
+from collections import UserDict
 import pickle
 import plyvel
 
+
 class PlyvelDict:
-    # TODO: maybe add a proxy helper for modifying nested keys, (e.g. db['foo']['bar'] = 'thing'): set, del
+    """
+    Wrapper for plyvel to emulate a dictionary interface to LevelDB.
+    """
+
     def __init__(self, path: str):
         self._db = plyvel.DB(path, create_if_missing=True)
 
@@ -24,9 +28,12 @@ class PlyvelDict:
 
         item = pickle.loads(item)
 
+        if isinstance(item, dict):
+            return PlyvelDictResult(self._db, key, item)
+
         return item
 
-    def __setitem__(self, key: str, value: Any):
+    def __setitem__(self, key: str, value):
         self._db.put(key.encode(), pickle.dumps(value))
 
     def __delitem__(self, key: str):
@@ -43,3 +50,33 @@ class PlyvelDict:
 
     def __reversed__(self):
         return self._db.iterator(reverse=True)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self._db.name!r}{" closed" if self._db.closed else ""})'
+
+
+class PlyvelDictResult(UserDict):
+    """
+    Intermediate value for dictionaries returned by `PlyvelDict`
+    TODO: deep nesting
+    """
+
+    def __init__(self, db: PlyvelDict, key: str, initial_data):
+        super().__init__(initial_data)
+
+        self._key = key.encode()  # Pre-encode key to reduce repetition
+        self._db = db
+        self._is_ready = True
+
+    def __setitem__(self, key: str, value):
+        super().__setitem__(key, value)
+
+        if hasattr(self, '_is_ready'):
+            self._db.put(self._key, pickle.dumps(self.data))
+
+    def __delitem__(self, key: str):
+        super().__delitem__(key)
+        self._db.put(self._key, pickle.dumps(self.data))
+
+    def __repr__(self):
+        return f'{type(self).__name__}({self.data})'
