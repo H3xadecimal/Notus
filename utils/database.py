@@ -1,4 +1,4 @@
-from collections import UserDict
+from collections import UserDict, UserList
 import pickle
 import plyvel
 
@@ -30,6 +30,8 @@ class PlyvelDict:
 
         if isinstance(item, dict):
             return PlyvelDictResult(self._db, key, item)
+        elif isinstance(item, list):
+            return PlyvelListResult(self._db, key, item)
 
         return item
 
@@ -61,10 +63,37 @@ class PlyvelDictResult(UserDict):
     TODO: deep nesting
     """
 
-    def __init__(self, db: PlyvelDict, key: str, initial_data):
+    def __init__(self, db: PlyvelDict, key: str, initial_data: dict):
         super().__init__(initial_data)
 
         self._key = key.encode()  # Pre-encode key to reduce repetition
+        self._db = db
+        self._is_ready = True  # __setitem__ bugs out about no _db when being initialised
+
+    def __setitem__(self, key: str, value):
+        super().__setitem__(key, value)
+
+        if hasattr(self, '_is_ready'):
+            self._db.put(self._key, pickle.dumps(self.data))
+
+    def __delitem__(self, key: str):
+        super().__delitem__(key)
+        self._db.put(self._key, pickle.dumps(self.data))
+
+    def __repr__(self):
+        return f'{type(self).__name__}({self.data})'
+
+
+class PlyvelListResult(UserList):
+    """
+    Intermediate value for lists returned by `PlyvelDict`
+    TODO: deep nesting
+    """
+
+    def __init__(self, db: PlyvelDict, key: str, initial_data: list):
+        super().__init__(initial_data)
+
+        self._key = key.encode()
         self._db = db
         self._is_ready = True
 
