@@ -57,55 +57,39 @@ class PlyvelDict:
         return f'{self.__class__.__name__}({self._db.name!r}{" closed" if self._db.closed else ""})'
 
 
-class PlyvelDictResult(UserDict):
+class PlyvelResult:
+    """
+    Base implementation of proxies for some collections returned by PlyvelDict.
+    """
+    def __init__(self, db: PlyvelDict, key: str, initial_data):
+        self._key = key.encode()  # Pre-encode key to reduce repetition
+        self._db = db
+
+        super().__init__(initial_data)
+
+    def __setitem__(self, key: str, value):
+        super().__setitem__(key, value)
+        self._db.put(self._key, pickle.dumps(self.data))
+
+    def __delitem__(self, key: str):
+        super().__delitem__(key)
+        self._db.put(self._key, pickle.dumps(self.data))
+
+    def __repr__(self):
+        return f'{type(self).__name__}({self.data})'
+
+
+class PlyvelDictResult(PlyvelResult, UserDict):
     """
     Intermediate value for dictionaries returned by `PlyvelDict`
     TODO: deep nesting
     """
-
-    def __init__(self, db: PlyvelDict, key: str, initial_data: dict):
-        super().__init__(initial_data)
-
-        self._key = key.encode()  # Pre-encode key to reduce repetition
-        self._db = db
-        self._is_ready = True  # __setitem__ bugs out about no _db when being initialised
-
-    def __setitem__(self, key: str, value):
-        super().__setitem__(key, value)
-
-        if hasattr(self, '_is_ready'):
-            self._db.put(self._key, pickle.dumps(self.data))
-
-    def __delitem__(self, key: str):
-        super().__delitem__(key)
-        self._db.put(self._key, pickle.dumps(self.data))
-
-    def __repr__(self):
-        return f'{type(self).__name__}({self.data})'
+    pass
 
 
-class PlyvelListResult(UserList):
+class PlyvelListResult(PlyvelResult, UserList):
     """
     Intermediate value for lists returned by `PlyvelDict`
     TODO: deep nesting
     """
-
-    def __init__(self, db: PlyvelDict, key: str, initial_data: list):
-        super().__init__(initial_data)
-
-        self._key = key.encode()
-        self._db = db
-        self._is_ready = True
-
-    def __setitem__(self, key: str, value):
-        super().__setitem__(key, value)
-
-        if hasattr(self, '_is_ready'):
-            self._db.put(self._key, pickle.dumps(self.data))
-
-    def __delitem__(self, key: str):
-        super().__delitem__(key)
-        self._db.put(self._key, pickle.dumps(self.data))
-
-    def __repr__(self):
-        return f'{type(self).__name__}({self.data})'
+    pass
