@@ -1,6 +1,11 @@
 from collections import UserDict, UserList
+from typing import List, Union
 import pickle
 import plyvel
+
+
+def maybe_decode_all(list_: List[Union[int, bytes]]) -> List[Union[int, str]]:
+    return [x.decode() if isinstance(x, bytes) else x for x in list_]
 
 
 class PlyvelDict:
@@ -61,19 +66,54 @@ class PlyvelResult:
     """
     Base implementation of proxies for some collections returned by PlyvelDict.
     """
-    def __init__(self, db: PlyvelDict, key: str, initial_data):
-        self._key = key.encode()  # Pre-encode key to reduce repetition
+    def __init__(self, db: PlyvelDict, key: str, initial_data, keys: List[bytes] = []):
+        self._keys = keys
+        self._key = key.encode() if isinstance(key, str) else key # Pre-encode key to reduce repetition
         self._db = db
 
         super().__init__(initial_data)
 
+    def __getitem__(self, key):
+        item = super().__getitem__(key)
+
+        if isinstance(item, dict):
+            return PlyvelDictResult(self._db, key, item, self._keys + [self._key])
+        elif isinstance(item, list):
+            return PlyvelListResult(self._db, key, item, self._keys + [self._key])
+        else:
+            return item
+
     def __setitem__(self, key: str, value):
         super().__setitem__(key, value)
-        self._db.put(self._key, pickle.dumps(self.data))
+
+        if not self._keys:
+            self._db.put(self._key, pickle.dumps(self.data))
+        else:
+            item = pickle.loads(self._db.get(self._keys[0]))
+            keys = maybe_decode_all(self._keys + [self._key])
+            ref = item
+
+            for key_ in keys[1:]:
+                ref = ref[key_]
+
+            ref[key] = value
+            self._db.put(self._keys[0], pickle.dumps(item))            
 
     def __delitem__(self, key: str):
         super().__delitem__(key)
-        self._db.put(self._key, pickle.dumps(self.data))
+        
+        if not self._keys:
+            self._db.put(self._key, pickle.dumps(self.data))
+        else:
+            item = pickle.loads(self._db.get(self._keys[0]))
+            keys = maybe_decode_all(self._keys + [self._key])
+            ref = item
+
+            for key_ in keys[1:]:
+                ref = ref[key_]
+
+            del ref[key]
+            self._db.put(self._keys[0], pickle.dumps(item))
 
     def __repr__(self):
         return f'{type(self).__name__}({self.data})'
@@ -82,7 +122,6 @@ class PlyvelResult:
 class PlyvelDictResult(PlyvelResult, UserDict):
     """
     Intermediate value for dictionaries returned by `PlyvelDict`
-    TODO: deep nesting
     """
     pass
 
@@ -90,6 +129,5 @@ class PlyvelDictResult(PlyvelResult, UserDict):
 class PlyvelListResult(PlyvelResult, UserList):
     """
     Intermediate value for lists returned by `PlyvelDict`
-    TODO: deep nesting
     """
     pass
