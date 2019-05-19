@@ -1,11 +1,23 @@
 from collections import UserDict, UserList
 from typing import List, Union
+from functools import wraps
 import pickle
 import plyvel
 
 
 def maybe_decode_all(list_: List[Union[int, bytes]]) -> List[Union[int, str]]:
     return [x.decode() if isinstance(x, bytes) else x for x in list_]
+
+
+def call_super_and_put(func):
+    @wraps(func)
+    def decorator(self, *args, **kwargs):
+        ret = getattr(super(self.__class__, self), func.__name__)(*args, **kwargs)
+        self._put()
+        
+        return ret
+
+    return decorator
 
 
 class PlyvelDict:
@@ -73,6 +85,12 @@ class PlyvelResult:
 
         super().__init__(initial_data)
 
+    def _put(self):
+        if not self._keys:
+            self._db.put(self._key, pickle.dumps(self.data))
+        else:
+            self._db.put(self._keys[0], pickle.dumps(self.data))
+
     def __getitem__(self, key):
         item = super().__getitem__(key)
 
@@ -118,16 +136,54 @@ class PlyvelResult:
     def __repr__(self):
         return f'{type(self).__name__}({self.data})'
 
+    def to_original(self):
+        """Get unwrapped data."""
+        return self.data
+
 
 class PlyvelDictResult(PlyvelResult, UserDict):
     """
     Intermediate value for dictionaries returned by `PlyvelDict`
     """
-    pass
+    @call_super_and_put
+    def pop(): pass
+
+    @call_super_and_put
+    def popitem(): pass
+
+    @call_super_and_put
+    def clear(): pass
+
+    @call_super_and_put
+    def update(): pass
 
 
 class PlyvelListResult(PlyvelResult, UserList):
     """
     Intermediate value for lists returned by `PlyvelDict`
     """
-    pass
+    @call_super_and_put
+    def append(): pass
+
+    @call_super_and_put
+    def insert(): pass
+
+    @call_super_and_put
+    def pop(): pass
+
+    @call_super_and_put
+    def remove(): pass
+
+    @call_super_and_put
+    def clear(): pass
+
+    @call_super_and_put
+    def reverse(): pass
+
+    @call_super_and_put
+    def sort(): pass
+
+    @call_super_and_put
+    def extend(): pass
+
+    # TODO: maybe also do this for stuff like += and -=
