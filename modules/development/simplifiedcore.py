@@ -9,11 +9,15 @@ from utils.lookups import Lookups
 class Core:
     def __init__(self, amethyst):
         self.amethyst = amethyst
+        self.db = amethyst.db
         self.firmware = "Simplified 0.1"
-        self.settings = dataIO.load_json('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
         self.owners_task = amethyst.loop.create_task(self.owners_configuration())
         self.lookups = Lookups(amethyst)
+
+    @property
+    def settings(self):
+        return self.db['settings']
 
     def __unload(self):
         self.post_task.cancel()

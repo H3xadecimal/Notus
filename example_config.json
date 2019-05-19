@@ -1,9 +1,5 @@
 {
     "COMMENT": "Copy this file as 'config.json' and substitute the values for what you want.",
-    "AMETHYST_REDIS_HOST": "localhost",
-    "AMETHYST_REDIS_PASSWORD": "",
-    "AMETHYST_REDIS_PORT": 6379,
-    "AMETHYST_REDIS_DB": 0,
     "AMETHYST_TOKEN": "TOKEN",
     "AMETHYST_PREFIXES": ["test "]
 }

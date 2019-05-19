@@ -5,3 +5,4 @@ logs/*
 **/__pycache__
 *.rdb
 .vscode/*
+.notus_db/*

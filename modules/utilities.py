@@ -9,8 +9,12 @@ import mimetypes
 class Utilities:
     def __init__(self, amethyst):
         self.amethyst = amethyst
-        self.settings = amethyst.data.load('settings')
+        self.db = amethyst.db
         self.lookups = lookups.Lookups(amethyst)
+
+    @property
+    def settings(self):
+        return self.db['settings']
 
     @command()
     async def ping(self, ctx):
@@ -70,7 +74,7 @@ class Utilities:
         owners = [await self.lookups.member_lookup(ctx, arg) for arg in ctx.args]
         owners = [str(x.id) for x in owners if isinstance(x, discord.Member) and str(x.id) not in
                   self.settings['owners']]
-        self.settings['owners'] += owners
+        self.settings['owners'].extend(owners)
 
         if len(owners) == 1:
             await ctx.send('Set other owner.')

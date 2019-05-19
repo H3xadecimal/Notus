@@ -10,12 +10,16 @@ import textwrap
 class Core:
     def __init__(self, amethyst):
         self.amethyst = amethyst
+        self.db = amethyst.db
         self.firmware = "Stock Firmware: Compact 0.3"
-        self.settings = amethyst.data.load('settings')
         self.post_task = self.amethyst.loop.create_task(self.post())
         self.owners_task = amethyst.loop.create_task(self.owners_configuration())
         self.lookups = Lookups(amethyst)
         self._eval = {}
+
+    @property
+    def settings(self):
+        return self.db['settings']
 
     def __unload(self):
         self.post_task.cancel()
@@ -31,6 +35,7 @@ class Core:
                         self.amethyst.holder.load_module(module)
                     except Exception as e:
                         self.settings['modules'].remove(module)
+
                         print(f"Module `{module}` blew up.")
                         print(''.join(traceback.format_tb(e.__traceback__)))
 
@@ -39,6 +44,7 @@ class Core:
             self.settings['owners'] = []
         if self.amethyst.owner not in self.settings['owners']:
             self.settings['owners'].append(self.amethyst.owner)
+
         self.amethyst.owners = self.settings['owners']
 
     @command(aliases=['commands'], usage='[command]')
