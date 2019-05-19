@@ -6,7 +6,6 @@ from utils import dusk, message_parsing
 from utils.database import PlyvelDict
 import utils.arg_converters as arg_converters
 import traceback
-import redis
 import argparse
 import json
 import discord
