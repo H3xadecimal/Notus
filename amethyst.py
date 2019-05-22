@@ -29,7 +29,6 @@ class Amethyst(discord.Client):
         self.holder = dusk.CommandHolder(self)
         self.commands = self.holder
         self.converters = arg_converters.Converters(self)
-        self.session = aiohttp.ClientSession()
         self.send_cmd_help = self.holder.send_cmd_help
         self.send_command_help = self.send_cmd_help
         self.tagline = tagline
@@ -41,6 +40,8 @@ class Amethyst(discord.Client):
             self.db['settings']['blacklist'] = []
 
     async def on_ready(self):
+        self.session = aiohttp.ClientSession()
+
         app_info = await self.application_info()
         self.invite_url = dutils.oauth_url(app_info.id)
         self.owner = str(app_info.owner.id)
