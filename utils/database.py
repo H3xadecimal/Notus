@@ -89,7 +89,18 @@ class PlyvelResult:
         if not self._keys:
             self._db.put(self._key, pickle.dumps(self.data))
         else:
-            self._db.put(self._keys[0], pickle.dumps(self.data))
+            item = pickle.loads(self._db.get(self._keys[0]))
+            keys = maybe_decode_all(self._keys + [self._key])
+            ref = item
+
+            for key_ in keys[1:]:
+                if ref == self.data:
+                    ref[key_] = self.data
+                    break
+
+                ref = ref[key_]
+
+            self._db.put(self._keys[0], pickle.dumps(item))   
 
     def __getitem__(self, key):
         item = super().__getitem__(key)
@@ -101,7 +112,7 @@ class PlyvelResult:
         else:
             return item
 
-    def __setitem__(self, key: str, value):
+    def __setitem__(self, key, value):
         super().__setitem__(key, value)
 
         if not self._keys:
@@ -117,7 +128,7 @@ class PlyvelResult:
             ref[key] = value
             self._db.put(self._keys[0], pickle.dumps(item))            
 
-    def __delitem__(self, key: str):
+    def __delitem__(self, key):
         super().__delitem__(key)
         
         if not self._keys:
