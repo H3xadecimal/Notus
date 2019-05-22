@@ -60,6 +60,10 @@ class Amethyst(discord.Client):
 
         await ctx.send(error)
 
+    async def close(self):
+        await self.session.close()
+        await super().close()
+
     async def on_message(self, message):
         if (not message.content or message.author.bot or
                 (str(message.author.id) in self.db['settings']['blacklist'] and
