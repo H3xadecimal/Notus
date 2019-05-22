@@ -12,36 +12,32 @@ class Core:
         self.amethyst = amethyst
         self.db = amethyst.db
         self.firmware = "Stock Firmware: Compact 0.3"
-        self.post_task = self.amethyst.loop.create_task(self.post())
-        self.owners_task = amethyst.loop.create_task(self.owners_configuration())
         self.lookups = Lookups(amethyst)
         self._eval = {}
+
+        self.post_load()
 
     @property
     def settings(self):
         return self.db['settings']
 
-    def __unload(self):
-        self.post_task.cancel()
-        self.owners_task.cancel()
-
-    async def post(self):
+    def post_load(self):
         if 'modules' not in self.settings:
             self.settings['modules'] = []
-        else:
-            for module in self.settings['modules']:
-                if module not in self.amethyst.holder.all_modules:
-                    try:
-                        self.amethyst.holder.load_module(module)
-                    except Exception as e:
-                        self.settings['modules'].remove(module)
 
-                        print(f"Module `{module}` blew up.")
-                        print(''.join(traceback.format_tb(e.__traceback__)))
+        for module in self.settings['modules']:
+            if module not in self.amethyst.holder.all_modules:
+                try:
+                    self.amethyst.holder.load_module(module)
+                except Exception as e:
+                    self.settings['modules'].remove(module)
 
-    async def owners_configuration(self):
+                    print(f"Module `{module}` blew up.")
+                    print(''.join(traceback.format_tb(e.__traceback__)))
+
         if 'owners' not in self.settings:
             self.settings['owners'] = []
+
         if self.amethyst.owner not in self.settings['owners']:
             self.settings['owners'].append(self.amethyst.owner)
 
