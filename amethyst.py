@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.6
-
 from discord import utils as dutils
 from discord.ext.commands import Paginator
 from utils import dusk, message_parsing
