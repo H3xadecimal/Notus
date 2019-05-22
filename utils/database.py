@@ -5,8 +5,12 @@ import pickle
 import plyvel
 
 
+def maybe_decode(x: Union[int, bytes]) -> Union[int, str]:
+    return x.decode() if isinstance(x, bytes) else x
+
+
 def maybe_decode_all(list_: List[Union[int, bytes]]) -> List[Union[int, str]]:
-    return [x.decode() if isinstance(x, bytes) else x for x in list_]
+    return [maybe_decode(x) for x in list_]
 
 
 def call_super_and_put(func):
@@ -14,7 +18,7 @@ def call_super_and_put(func):
     def decorator(self, *args, **kwargs):
         ret = getattr(super(self.__class__, self), func.__name__)(*args, **kwargs)
         self._put()
-        
+
         return ret
 
     return decorator
@@ -91,16 +95,18 @@ class PlyvelResult:
         else:
             item = pickle.loads(self._db.get(self._keys[0]))
             keys = maybe_decode_all(self._keys + [self._key])
+            our_key = maybe_decode(self._key)
+
             ref = item
 
             for key_ in keys[1:]:
-                if ref == self.data:
+                if our_key in ref:
                     ref[key_] = self.data
                     break
 
                 ref = ref[key_]
 
-            self._db.put(self._keys[0], pickle.dumps(item))   
+            self._db.put(self._keys[0], pickle.dumps(item))
 
     def __getitem__(self, key):
         item = super().__getitem__(key)
@@ -126,11 +132,11 @@ class PlyvelResult:
                 ref = ref[key_]
 
             ref[key] = value
-            self._db.put(self._keys[0], pickle.dumps(item))            
+            self._db.put(self._keys[0], pickle.dumps(item))
 
     def __delitem__(self, key):
         super().__delitem__(key)
-        
+
         if not self._keys:
             self._db.put(self._key, pickle.dumps(self.data))
         else:
