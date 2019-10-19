@@ -1,7 +1,7 @@
-Amethyst Public License  
-Revision 1.1
+Notus/Apheleia Public License  
+Revision 1.2
 
-Copyright Hexadecimal (c) 2017-2018.
+Copyright Hexadecimal (c) 2017-2020.
 
 Permission is granted to use, modify, integrate, redistribute, etc., the source code of this program
 in any way you like - except as stated below - so long as the original copyright notice and license
