@@ -1,5 +1,5 @@
 from discord.ext import commands
-from utils import confirm
+from utils import check
 import discord
 import traceback
 import time
@@ -57,7 +57,7 @@ class Core:
 # CC @Ovyerus to test.
 
     @commands.command(aliases=['cog'])
-    @confirm.instance_owner()
+    @check.instance_owner()
     async def module(self, ctx, *, argument: str=None, module: str):
         """Module management."""
 
@@ -97,14 +97,14 @@ class Core:
                     " `[prefix]arguments`.")
 
     @command()
-    @confirm.instance_owner()
+    @check.instance_owner()
     async def arguments(self, ctx):
         """Lists all arguments."""
         await ctx.send(
             "Arguments for modules include: `load, unload & reload`.")
 
     @command(aliases=['kys'])
-    @confirm.instance_owner()
+    @check.instance_owner()
     async def shutdown(self, ctx):
         """Shuts down the bot.... Duh."""
         await ctx.send("Logging out...")
@@ -117,7 +117,7 @@ class Core:
 # Also leaving that one to @Ovyerus because my last 6 attempts at fixing it failed.
 
     @command(aliases=['debug'], usage='<code>')
-    @confirm.instance_owner()
+    @check.instance_owner()
     async def eval(self, ctx):
         await ctx.send("This command is currently disabled.")
 #        if self._eval.get('env') is None:
@@ -196,4 +196,4 @@ class Core:
 
 
 def setup(notus):
-    return Core(notus)
+    notus.add_cog(Core())

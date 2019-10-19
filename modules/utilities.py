@@ -1,5 +1,5 @@
 from discord.ext import commands, groups
-from utils import confirm, lookups
+from utils import check
 import discord
 import asyncio
 import aiohttp
@@ -10,7 +10,6 @@ class Utilities:
     def __init__(self, notus):
         self.notus = notus
         self.db = notus.db
-        self.lookups = lookups.Lookups(notus)
 
     @property
     def settings(self):
@@ -22,7 +21,7 @@ class Utilities:
         await ctx.send("Pong.")
 
     @group(name="set")
-    @confirm.instance_owner()
+    @check.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
         await self.notus.send_command_help(ctx)
@@ -107,7 +106,7 @@ class Utilities:
         await ctx.send("Successfully updated avatar!")
 
     @group(name="blacklist")
-    @confirm.instance_owner()
+    @check.instance_owner()
     async def blacklist_commands(self, ctx):
         """Prevents a user from using the bot globally."""
         await self.notus.send_command_help(ctx)
@@ -136,7 +135,7 @@ class Utilities:
 # Needs Testing.
 
     @command(aliases=['clean'])
-    @confirm.instance_guild()
+    @check.instance_guild()
     async def cleanup(self, ctx):
         """Cleans up the bot's messages."""
         msgs = await ctx.msg.channel.history(limit=100).flatten()
@@ -157,4 +156,4 @@ class Utilities:
 # Needs Testing.
 
 def setup(notus):
-    return Utilities(notus)
+    notus.add_cog(utilities())
