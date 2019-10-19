@@ -20,7 +20,7 @@ class Utilities:
         """Pong."""
         await ctx.send("Pong.")
 
-    @group(name="set")
+    @commands.group(name='set') # Needs testing.
     @check.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
@@ -105,7 +105,7 @@ class Utilities:
 
         await ctx.send("Successfully updated avatar!")
 
-    @group(name="blacklist")
+    @commands.group(name="blacklist") # also needs testing
     @check.instance_owner()
     async def blacklist_commands(self, ctx):
         """Prevents a user from using the bot globally."""
@@ -134,7 +134,7 @@ class Utilities:
 
 # Needs Testing.
 
-    @command(aliases=['clean'])
+    @commands.command(aliases=['clean'])
     @check.instance_guild()
     async def cleanup(self, ctx):
         """Cleans up the bot's messages."""

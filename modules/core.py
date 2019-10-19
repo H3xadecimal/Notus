@@ -96,14 +96,14 @@ class Core:
                     "Please check the available arguments using"
                     " `[prefix]arguments`.")
 
-    @command()
+    @commands.command()
     @check.instance_owner()
     async def arguments(self, ctx):
         """Lists all arguments."""
         await ctx.send(
             "Arguments for modules include: `load, unload & reload`.")
 
-    @command(aliases=['kys'])
+    @commands.command(aliases=['kys'])
     @check.instance_owner()
     async def shutdown(self, ctx):
         """Shuts down the bot.... Duh."""
@@ -116,7 +116,7 @@ class Core:
 # Temporarily disabled until fixed.
 # Also leaving that one to @Ovyerus because my last 6 attempts at fixing it failed.
 
-    @command(aliases=['debug'], usage='<code>')
+    @commands.command(aliases=['debug'], usage='<code>')
     @check.instance_owner()
     async def eval(self, ctx):
         await ctx.send("This command is currently disabled.")
@@ -126,7 +126,6 @@ class Core:
 #            self._eval['count'] = 0
 #
 #        self._eval['env'].update({
-#            'lookups': self.lookups,
 #            'ctx': ctx,
 #            'message': ctx.msg,
 #            'channel': ctx.msg.channel,
