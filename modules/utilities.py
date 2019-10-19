@@ -1,4 +1,4 @@
-from utils.dusk import command, group
+from discord.ext import commands, groups
 from utils import confirm, lookups
 import discord
 import asyncio
@@ -7,16 +7,16 @@ import mimetypes
 
 
 class Utilities:
-    def __init__(self, amethyst):
-        self.amethyst = amethyst
-        self.db = amethyst.db
-        self.lookups = lookups.Lookups(amethyst)
+    def __init__(self, notus):
+        self.notus = notus
+        self.db = notus.db
+        self.lookups = lookups.Lookups(notus)
 
     @property
     def settings(self):
         return self.db['settings']
 
-    @command()
+    @commands.command()
     async def ping(self, ctx):
         """Pong."""
         await ctx.send("Pong.")
@@ -25,13 +25,13 @@ class Utilities:
     @confirm.instance_owner()
     async def utils_set(self, ctx):
         """Sets various stuff."""
-        await self.amethyst.send_command_help(ctx)
+        await self.notus.send_command_help(ctx)
 
     @utils_set.command(name="nickname", aliases=['nick'], usage="<name>")
     async def utils_set_nickname(self, ctx):
         """Sets bot nickname."""
         if not ctx.args:
-            return await self.amethyst.send_command_help(ctx)
+            return await self.notus.send_command_help(ctx)
 
         try:
             if len(ctx.suffix) < 32:
@@ -47,12 +47,7 @@ class Utilities:
     @utils_set.command(name="game", usage='[game]')
     async def utils_set_game(self, ctx):
         """Sets Bot's playing status."""
-        if ctx.args:
-            await self.amethyst.change_presence(game=discord.Game(name=ctx.suffix, type=0))
-            await ctx.send("Done.")
-        else:
-            await self.amethyst.change_presence(game=None)
-            await ctx.send("Done.")
+        await ctx.send("This command needs to be rewritten to adapt to Discord RPC.")
 
     @utils_set.command(name="status", usage='[status]')
     async def utils_set_status(self, ctx):
@@ -62,14 +57,14 @@ class Utilities:
         else:
             status = discord.Status.online
 
-        await self.amethyst.change_presence(status=status)
+        await self.notus.change_presence(status=status)
         await ctx.send("Changed status!")
 
     @utils_set.command(name="owner", aliases=['owners'], usage='<owners: multiple>')
     async def utils_set_owner(self, ctx):
         """Sets other owners."""
         if not ctx.args:
-            return await self.amethyst.send_command_help(ctx)
+            return await self.notus.send_command_help(ctx)
 
         owners = [await self.lookups.member_lookup(ctx, arg) for arg in ctx.args]
         owners = [str(x.id) for x in owners if isinstance(x, discord.Member) and str(x.id) not in
@@ -105,7 +100,7 @@ class Utilities:
                     return await ctx.send("Invalid response code: {}".format(r.status_code))
 
             try:
-                await self.amethyst.user.edit(avatar=content)
+                await self.notus.user.edit(avatar=content)
             except BaseException:  # I don't know the exact Exception type
                 return await ctx.send("Avatar was too big or not an image!")
 
@@ -115,7 +110,7 @@ class Utilities:
     @confirm.instance_owner()
     async def blacklist_commands(self, ctx):
         """Prevents a user from using the bot globally."""
-        await self.amethyst.send_command_help(ctx)
+        await self.notus.send_command_help(ctx)
 
     @blacklist_commands.command(name="add")
     async def add_blacklist(self, ctx, *, user: discord.Member):
@@ -138,12 +133,14 @@ class Utilities:
             self.settings['blacklist'].remove(str(user.id))
             await ctx.send("User removed from blacklist.")
 
+# Needs Testing.
+
     @command(aliases=['clean'])
     @confirm.instance_guild()
     async def cleanup(self, ctx):
         """Cleans up the bot's messages."""
         msgs = await ctx.msg.channel.history(limit=100).flatten()
-        msgs = [msg for msg in msgs if msg.author.id == self.amethyst.user.id]
+        msgs = [msg for msg in msgs if msg.author.id == self.notus.user.id]
 
         if msgs and ctx.has_permission('manage_messages'):
             await ctx.msg.channel.delete_messages(msgs)
@@ -157,6 +154,7 @@ class Utilities:
         await asyncio.sleep(2.5)
         await msg.delete()
 
+# Needs Testing.
 
-def setup(amethyst):
-    return Utilities(amethyst)
+def setup(notus):
+    return Utilities(notus)
