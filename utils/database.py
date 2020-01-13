@@ -1,7 +1,8 @@
-from collections import UserDict, UserList
-from typing import List, Union
-from functools import wraps
 import pickle
+from collections import UserDict, UserList
+from functools import wraps
+from typing import List, Union
+
 import plyvel
 
 
@@ -82,9 +83,12 @@ class PlyvelResult:
     """
     Base implementation of proxies for some collections returned by PlyvelDict.
     """
+
     def __init__(self, db: PlyvelDict, key: str, initial_data, keys: List[bytes] = []):
         self._keys = keys
-        self._key = key.encode() if isinstance(key, str) else key # Pre-encode key to reduce repetition
+        self._key = (
+            key.encode() if isinstance(key, str) else key
+        )  # Pre-encode key to reduce repetition
         self._db = db
 
         super().__init__(initial_data)
@@ -151,7 +155,7 @@ class PlyvelResult:
             self._db.put(self._keys[0], pickle.dumps(item))
 
     def __repr__(self):
-        return f'{type(self).__name__}({self.data})'
+        return f"{type(self).__name__}({self.data})"
 
     def to_original(self):
         """Get unwrapped data."""
@@ -162,45 +166,59 @@ class PlyvelDictResult(PlyvelResult, UserDict):
     """
     Intermediate value for dictionaries returned by `PlyvelDict`
     """
-    @call_super_and_put
-    def pop(): pass
 
     @call_super_and_put
-    def popitem(): pass
+    def pop():
+        pass
 
     @call_super_and_put
-    def clear(): pass
+    def popitem():
+        pass
 
     @call_super_and_put
-    def update(): pass
+    def clear():
+        pass
+
+    @call_super_and_put
+    def update():
+        pass
 
 
 class PlyvelListResult(PlyvelResult, UserList):
     """
     Intermediate value for lists returned by `PlyvelDict`
     """
-    @call_super_and_put
-    def append(): pass
 
     @call_super_and_put
-    def insert(): pass
+    def append():
+        pass
 
     @call_super_and_put
-    def pop(): pass
+    def insert():
+        pass
 
     @call_super_and_put
-    def remove(): pass
+    def pop():
+        pass
 
     @call_super_and_put
-    def clear(): pass
+    def remove():
+        pass
 
     @call_super_and_put
-    def reverse(): pass
+    def clear():
+        pass
 
     @call_super_and_put
-    def sort(): pass
+    def reverse():
+        pass
 
     @call_super_and_put
-    def extend(): pass
+    def sort():
+        pass
+
+    @call_super_and_put
+    def extend():
+        pass
 
     # TODO: maybe also do this for stuff like += and -=

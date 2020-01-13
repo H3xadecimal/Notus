@@ -1,9 +1,11 @@
-from discord.ext import commands, groups
-from utils import check
-import discord
 import asyncio
-import aiohttp
 import mimetypes
+
+import aiohttp
+import discord
+from discord.ext import commands, groups
+
+from utils import check
 
 
 class Utilities:
@@ -13,7 +15,7 @@ class Utilities:
 
     @property
     def settings(self):
-        return self.db['settings']
+        return self.db["settings"]
 
     @commands.command()
     async def ping(self, ctx):
@@ -26,7 +28,7 @@ class Utilities:
         """Sets various stuff."""
         await self.notus.send_command_help(ctx)
 
-    @utils_set.command(name="nickname", aliases=['nick'], usage="<name>")
+    @utils_set.command(name="nickname", aliases=["nick"], usage="<name>")
     async def utils_set_nickname(self, ctx):
         """Sets bot nickname."""
         if not ctx.args:
@@ -38,17 +40,20 @@ class Utilities:
                 await ctx.send("Beep Boop. Done.")
             else:
                 await ctx.send(
-                    "Character count is over 32!... Try with less characters.")
+                    "Character count is over 32!... Try with less characters."
+                )
         except:
-            await ctx.send("Error changing nickname, either "
-                           "`Lacking Permissions` or `Something Blew Up`.")
+            await ctx.send(
+                "Error changing nickname, either "
+                "`Lacking Permissions` or `Something Blew Up`."
+            )
 
-    @utils_set.command(name="game", usage='[game]')
+    @utils_set.command(name="game", usage="[game]")
     async def utils_set_game(self, ctx):
         """Sets Bot's playing status."""
         await ctx.send("This command needs to be rewritten to adapt to Discord RPC.")
 
-    @utils_set.command(name="status", usage='[status]')
+    @utils_set.command(name="status", usage="[status]")
     async def utils_set_status(self, ctx):
         """Sets bot presence."""
         if ctx.args:
@@ -59,21 +64,25 @@ class Utilities:
         await self.notus.change_presence(status=status)
         await ctx.send("Changed status!")
 
-    @utils_set.command(name="owner", aliases=['owners'], usage='<owners: multiple>')
+    @utils_set.command(name="owner", aliases=["owners"], usage="<owners: multiple>")
     async def utils_set_owner(self, ctx):
         """Sets other owners."""
         if not ctx.args:
             return await self.notus.send_command_help(ctx)
 
         owners = [await self.lookups.member_lookup(ctx, arg) for arg in ctx.args]
-        owners = [str(x.id) for x in owners if isinstance(x, discord.Member) and str(x.id) not in
-                  self.settings['owners']]
-        self.settings['owners'].extend(owners)
+        owners = [
+            str(x.id)
+            for x in owners
+            if isinstance(x, discord.Member)
+            and str(x.id) not in self.settings["owners"]
+        ]
+        self.settings["owners"].extend(owners)
 
         if len(owners) == 1:
-            await ctx.send('Set other owner.')
+            await ctx.send("Set other owner.")
         else:
-            await ctx.send('Set other owners.')
+            await ctx.send("Set other owners.")
 
     @utils_set.command(name="avatar")
     async def utils_set_avatar(self, ctx, *, url=None):
@@ -96,7 +105,9 @@ class Utilities:
                 if 200 <= r.status < 300:
                     content = await r.read()
                 else:
-                    return await ctx.send("Invalid response code: {}".format(r.status_code))
+                    return await ctx.send(
+                        "Invalid response code: {}".format(r.status_code)
+                    )
 
             try:
                 await self.notus.user.edit(avatar=content)
@@ -114,9 +125,9 @@ class Utilities:
     @blacklist_commands.command(name="add")
     async def add_blacklist(self, ctx, *, user: discord.Member):
         """Adds a user to blacklist."""
-        if str(user.id) not in self.settings['blacklist']:
+        if str(user.id) not in self.settings["blacklist"]:
             try:
-                self.settings['blacklist'].append(str(user.id))
+                self.settings["blacklist"].append(str(user.id))
                 await ctx.send("User blacklisted.")
             except:
                 await ctx.send("An error occured.")
@@ -126,22 +137,22 @@ class Utilities:
     @blacklist_commands.command(name="remove")
     async def remove_blacklist(self, ctx, *, user: discord.Member):
         """Removes a user from blacklist."""
-        if str(user.id) not in self.settings['blacklist']:
+        if str(user.id) not in self.settings["blacklist"]:
             await ctx.send("User is not blacklisted.")
         else:
-            self.settings['blacklist'].remove(str(user.id))
+            self.settings["blacklist"].remove(str(user.id))
             await ctx.send("User removed from blacklist.")
 
-# Needs Testing.
+    # Needs Testing.
 
-    @command(aliases=['clean'])
+    @command(aliases=["clean"])
     @check.instance_guild()
     async def cleanup(self, ctx):
         """Cleans up the bot's messages."""
         msgs = await ctx.msg.channel.history(limit=100).flatten()
         msgs = [msg for msg in msgs if msg.author.id == self.notus.user.id]
 
-        if msgs and ctx.has_permission('manage_messages'):
+        if msgs and ctx.has_permission("manage_messages"):
             await ctx.msg.channel.delete_messages(msgs)
         elif msgs:
             for msg in msgs:
@@ -153,7 +164,9 @@ class Utilities:
         await asyncio.sleep(2.5)
         await msg.delete()
 
+
 # Needs Testing.
+
 
 def setup(notus):
     notus.add_cog(utilities())

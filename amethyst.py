@@ -1,32 +1,34 @@
-from discord import utils as dutils
-from utils.database import PlyvelDict
-import traceback
 import argparse
-import json
-import discord
 import asyncio
+import json
+import traceback
+
 import aiohttp
+import discord
+from discord import utils as dutils
+
+from utils.database import PlyvelDict
 
 with open("config.json") as f:
     config = json.load(f)
 
-token = config.get('NOTUS_TOKEN')
-prefixes = config.get('NOTUS_PREFIXES', [])
+token = config.get("NOTUS_TOKEN")
+prefixes = config.get("NOTUS_PREFIXES", [])
 
 
 class Notus(discord.Client):
     def __init__(self, config, **options):
         super().__init__(**options)
-        self.db = PlyvelDict('./.notus_db')
+        self.db = PlyvelDict("./.notus_db")
         self.owner = None
         self.config = config
         self.send_command_help = send_cmd_help
 
-        if 'settings' not in self.db:
-            self.db['settings'] = {}
+        if "settings" not in self.db:
+            self.db["settings"] = {}
 
-        if 'blacklist' not in self.db['settings']:
-            self.db['settings']['blacklist'] = []
+        if "blacklist" not in self.db["settings"]:
+            self.db["settings"]["blacklist"] = []
 
     async def on_ready(self):
         self.session = aiohttp.ClientSession()
@@ -35,11 +37,11 @@ class Notus(discord.Client):
         self.invite_url = dutils.oauth_url(app_info.id)
         self.owner = str(app_info.owner.id)
 
-        print('Ready.')
+        print("Ready.")
         print(self.invite_url)
         print(self.user.name)
 
-        self.load_extension('modules.core')
+        self.load_extension("modules.core")
 
     async def on_command_error(self, exception, context):
         if isinstance(exception, commands_errors.MissingRequiredArgument):
@@ -47,12 +49,16 @@ class Notus(discord.Client):
         elif isinstance(exception, commands_errors.CommandInvokeError):
             exception = exception.original
             _traceback = traceback.format_tb(exception.__traceback__)
-            _traceback = ''.join(_traceback)
-            error = ('`{0}` in command `{1}`: ```py\n'
-                     'Traceback (most recent call last):\n{2}{0}: {3}\n```')\
-                .format(type(exception).__name__,
-                        context.command.qualified_name,
-                        _traceback, exception)
+            _traceback = "".join(_traceback)
+            error = (
+                "`{0}` in command `{1}`: ```py\n"
+                "Traceback (most recent call last):\n{2}{0}: {3}\n```"
+            ).format(
+                type(exception).__name__,
+                context.command.qualified_name,
+                _traceback,
+                exception,
+            )
             await context.send(error)
         elif isinstance(exception, commands_errors.CommandNotFound):
             pass
@@ -62,9 +68,13 @@ class Notus(discord.Client):
         await super().close()
 
     async def on_message(self, message):
-        if (not message.content or message.author.bot or
-                (str(message.author.id) in self.db['settings']['blacklist'] and
-                 str(message.author.id) not in self.owners)
+        if (
+            not message.content
+            or message.author.bot
+            or (
+                str(message.author.id) in self.db["settings"]["blacklist"]
+                and str(message.author.id) not in self.owners
+            )
         ):
             return
 

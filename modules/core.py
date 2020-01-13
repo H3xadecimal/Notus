@@ -1,9 +1,11 @@
-from discord.ext import commands
-from utils import check
-import discord
-import traceback
-import time
 import textwrap
+import time
+import traceback
+
+import discord
+from discord.ext import commands
+
+from utils import check
 
 
 class Core:
@@ -16,29 +18,29 @@ class Core:
 
     @property
     def settings(self):
-        return self.db['settings']
+        return self.db["settings"]
 
     def post_load(self):
-        if 'modules' not in self.settings:
-            self.settings['modules'] = []
+        if "modules" not in self.settings:
+            self.settings["modules"] = []
 
-        for module in self.settings['modules']:
+        for module in self.settings["modules"]:
             if module not in list(self.notus.extensions):
                 try:
                     self.notus.load_extension(module)
                 except Exception as e:
-                    self.settings['modules'].remove(module)
+                    self.settings["modules"].remove(module)
 
                     print(f"Module `{module}` blew up.")
-                    print(''.join(traceback.format_tb(e.__traceback__)))
+                    print("".join(traceback.format_tb(e.__traceback__)))
 
-        if 'owners' not in self.settings:
-            self.settings['owners'] = []
+        if "owners" not in self.settings:
+            self.settings["owners"] = []
 
-        if self.notus.owner not in self.settings['owners']:
-            self.settings['owners'].append(self.notus.owner)
+        if self.notus.owner not in self.settings["owners"]:
+            self.settings["owners"].append(self.notus.owner)
 
-        self.notus.owners = self.settings['owners']
+        self.notus.owners = self.settings["owners"]
 
     @commands.command()
     async def help(self, ctx):
@@ -47,79 +49,86 @@ class Core:
             try:
                 await self.notus.send_command_help(ctx)
             except discord.Forbidden:
-                await ctx.send('Cannot send the help to you. Perhaps you have DMs blocked?')
+                await ctx.send(
+                    "Cannot send the help to you. Perhaps you have DMs blocked?"
+                )
         else:
             ctx.cmd = ctx.suffix
             await self.notus.send_command_help(ctx)
 
-# At the time of rewriting this, I am unaware if importlib is still required to load/unload/reload
-# modules on the latest version of discord.py as the rewrite was in beta during this code and is now on release version.
-# CC @Ovyerus to test.
+    # At the time of rewriting this, I am unaware if importlib is still required to load/unload/reload
+    # modules on the latest version of discord.py as the rewrite was in beta during this code and is now on release version.
+    # CC @Ovyerus to test.
 
-    @commands.command(aliases=['cog'])
+    @commands.command(aliases=["cog"])
     @check.instance_owner()
-    async def module(self, ctx, *, argument: str=None, module: str):
+    async def module(self, ctx, *, argument: str = None, module: str):
         """Module management."""
 
         argument_list = ["load", "unload", "reload"]
-        module_name = 'modules.' + module.lower()
+        module_name = "modules." + module.lower()
 
-        if argument == 'load' or argument is None:
+        if argument == "load" or argument is None:
             if module_name not in list(self.notus.extensions):
                 self.notus.load_extension(module_name)
-                self.settings['modules'].append(module_name)
-                await ctx.send('Module loaded.')
+                self.settings["modules"].append(module_name)
+                await ctx.send("Module loaded.")
             else:
                 await ctx.send(
-                    'The module you are trying to load is already loaded.\n'
-                    'Please use the `reload` argument instead.')
-        elif argument == 'unload':
+                    "The module you are trying to load is already loaded.\n"
+                    "Please use the `reload` argument instead."
+                )
+        elif argument == "unload":
             if module_name in list(self.notus.extensions):
                 self.notus.unload_extension(module_name)
-                self.settings['modules'].remove(module_name)
-                await ctx.send('Module unloaded.')
+                self.settings["modules"].remove(module_name)
+                await ctx.send("Module unloaded.")
             else:
                 await ctx.send(
-                    'The module you are trying to unload '
-                    'could not be found or is not loaded.')
-        elif argument == '--reload':
+                    "The module you are trying to unload "
+                    "could not be found or is not loaded."
+                )
+        elif argument == "--reload":
             if module_name in list(self.notus.extensions):
                 self.notus.reload_extension(module_name)
-                await ctx.send('Module reloaded.')
+                await ctx.send("Module reloaded.")
             else:
                 await ctx.send(
-                        'The module you are trying to reload is not loaded.\n'
-                        'Please try the `load` argument.')
+                    "The module you are trying to reload is not loaded.\n"
+                    "Please try the `load` argument."
+                )
         elif argument not in argument_list:
             await ctx.send(
-                    "The argument you specified is invalid.\n"
-                    "Please check the available arguments using"
-                    " `[prefix]arguments`.")
+                "The argument you specified is invalid.\n"
+                "Please check the available arguments using"
+                " `[prefix]arguments`."
+            )
 
     @command()
     @check.instance_owner()
     async def arguments(self, ctx):
         """Lists all arguments."""
-        await ctx.send(
-            "Arguments for modules include: `load, unload & reload`.")
+        await ctx.send("Arguments for modules include: `load, unload & reload`.")
 
-    @command(aliases=['kys'])
+    @command(aliases=["kys"])
     @check.instance_owner()
     async def shutdown(self, ctx):
         """Shuts down the bot.... Duh."""
         await ctx.send("Logging out...")
         await self.notus.logout()
 
-# Now this piece of shit code is partially broken.
-# Large output evals used to upload to pastebin but their API is now private.
-# Instead large output evals are not printed at all thus causing a problem when debugging.
-# Temporarily disabled until fixed.
-# Also leaving that one to @Ovyerus because my last 6 attempts at fixing it failed.
+    # Now this piece of shit code is partially broken.
+    # Large output evals used to upload to pastebin but their API is now private.
+    # Instead large output evals are not printed at all thus causing a problem when debugging.
+    # Temporarily disabled until fixed.
+    # Also leaving that one to @Ovyerus because my last 6 attempts at fixing it failed.
 
-    @command(aliases=['debug'], usage='<code>')
+    @command(aliases=["debug"], usage="<code>")
     @check.instance_owner()
     async def eval(self, ctx):
         await ctx.send("This command is currently disabled.")
+
+
 #        if self._eval.get('env') is None:
 #            self._eval['env'] = {}
 #        if self._eval.get('count') is None:
@@ -135,13 +144,13 @@ class Core:
 #            'author': ctx.msg.author
 #        })
 #
-        # let's make this safe to work with
+# let's make this safe to work with
 #        code = ctx.suffix.replace('```py\n', '').replace('```', '').replace('`', '')
 #        _code = "async def func(self):\n  try:\n{}\n  finally:\n    self._eval['env'].update(locals())"\
 #                .format(textwrap.indent(code, '    '))
 #        before = time.monotonic()
 #
-        # noinspection PyBroadException
+# noinspection PyBroadException
 #        try:
 #            exec(_code, self._eval['env'])
 #
@@ -189,8 +198,8 @@ class Core:
 #            await ctx.msg.channel.trigger_typing()
 #            await ctx.send('Output was too big to be printed.')
 
-        # Eval code provided by Pandentia over at Thessia.
-        # More of his work here: https://github.com/Pandentia
+# Eval code provided by Pandentia over at Thessia.
+# More of his work here: https://github.com/Pandentia
 
 # Sidenote, uncommenting all of this is gonna be fun, goodluck Ovy.
 
