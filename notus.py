@@ -1,10 +1,8 @@
-import argparse
-import asyncio
 import json
 import traceback
 
 import aiohttp
-import discord
+import discord.ext.commands
 from discord import utils as dutils
 
 from utils.database import PlyvelDict
@@ -22,7 +20,7 @@ class Notus(discord.Client):
         self.db = PlyvelDict("./.notus_db")
         self.owner = None
         self.config = config
-        self.send_command_help = send_cmd_help
+        # self.send_command_help = send_cmd_help
 
         if "settings" not in self.db:
             self.db["settings"] = {}
@@ -33,9 +31,21 @@ class Notus(discord.Client):
     async def on_ready(self):
         self.session = aiohttp.ClientSession()
 
-        app_info = await self.application_info()
-        self.invite_url = dutils.oauth_url(app_info.id)
-        self.owner = str(app_info.owner.id)
+        app = await self.application_info()
+        self.invite_url = dutils.oauth_url(app.id)
+
+        if app.team:
+            self.owner = app.team.members[0].id
+            settings = self.db["settings"]
+
+            if "owners" not in settings:
+                settings["owners"] = [m.id for m in app.team.members]
+            else:
+                settings["owners"].extend(
+                    [m.id for m in app.team.members if m.id not in settings["owners"]]
+                )
+        else:
+            self.owner = app.owner.id
 
         print("Ready.")
         print(self.invite_url)
