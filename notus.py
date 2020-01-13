@@ -2,7 +2,7 @@ import json
 import traceback
 
 import aiohttp
-import discord.ext.commands
+import discord.ext.commands as discord
 from discord import utils as dutils
 
 from utils.database import PlyvelDict
@@ -18,7 +18,6 @@ class Notus(discord.Client):
     def __init__(self, config, **options):
         super().__init__(**options)
         self.db = PlyvelDict("./.notus_db")
-        self.owner = None
         self.config = config
         # self.send_command_help = send_cmd_help
 
@@ -35,21 +34,19 @@ class Notus(discord.Client):
         self.invite_url = dutils.oauth_url(app.id)
 
         if app.team:
-            self.owner = app.team.members[0].id
-            settings = self.db["settings"]
-
-            if "owners" not in settings:
-                settings["owners"] = [m.id for m in app.team.members]
-            else:
-                settings["owners"].extend(
-                    [m.id for m in app.team.members if m.id not in settings["owners"]]
-                )
+            self.owner_ids = set(app.team.members)
         else:
-            self.owner = app.owner.id
+            self.owner_id = app.owner.id
 
         print("Ready.")
         print(self.invite_url)
         print(self.user.name)
+        print("")
+
+        if self.owner_ids:
+            print(f"Owners: {', '.join(self.owner_ids)}")
+        else:
+            print(f"Owner: {self.owner_id}")
 
         self.load_extension("modules.core")
 
