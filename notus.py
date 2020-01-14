@@ -1,5 +1,6 @@
 import json
 import traceback
+from typings import Set
 
 import aiohttp
 import discord.ext.commands as discord
@@ -27,6 +28,15 @@ class Notus(discord.Client):
         if "blacklist" not in self.db["settings"]:
             self.db["settings"]["blacklist"] = []
 
+    async def close(self):
+        await self.session.close()
+        await super().close()
+
+    @property
+    def owners(self) -> Set[int]:
+        """Get owners of the bot, regardless if it's in a team or not."""
+        return self.owner_ids or set([self.owner_id])
+
     async def on_ready(self):
         self.session = aiohttp.ClientSession()
 
@@ -43,10 +53,7 @@ class Notus(discord.Client):
         print(self.user.name)
         print("")
 
-        if self.owner_ids:
-            print(f"Owners: {', '.join(self.owner_ids)}")
-        else:
-            print(f"Owner: {self.owner_id}")
+        print(f"Owners: {', '.join(self.owners)}")
 
         self.load_extension("modules.core")
 
@@ -69,10 +76,6 @@ class Notus(discord.Client):
             await context.send(error)
         elif isinstance(exception, commands_errors.CommandNotFound):
             pass
-
-    async def close(self):
-        await self.session.close()
-        await super().close()
 
     async def on_message(self, message):
         if (
