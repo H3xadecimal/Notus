@@ -1,11 +1,11 @@
 import json
 import traceback
-from typings import Set
 
 import aiohttp
 import discord.ext.commands as discord
 from discord import utils as dutils
 
+from typings import Set
 from utils.database import PlyvelDict
 
 with open("config.json") as f:
