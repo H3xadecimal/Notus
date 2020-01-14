@@ -58,9 +58,10 @@ class Notus(discord.Client):
         self.load_extension("modules.core")
 
     async def on_command_error(self, exception, context):
-        if isinstance(exception, commands_errors.MissingRequiredArgument):
+        # TODO: handle more exceptions
+        if isinstance(exception, discord.MissingRequiredArgument):
             await self.send_command_help(context)
-        elif isinstance(exception, commands_errors.CommandInvokeError):
+        elif isinstance(exception, discord.CommandInvokeError):
             exception = exception.original
             _traceback = traceback.format_tb(exception.__traceback__)
             _traceback = "".join(_traceback)
@@ -73,8 +74,9 @@ class Notus(discord.Client):
                 _traceback,
                 exception,
             )
+
             await context.send(error)
-        elif isinstance(exception, commands_errors.CommandNotFound):
+        elif isinstance(exception, discord.CommandNotFound):
             pass
 
     async def on_message(self, message):
@@ -87,6 +89,8 @@ class Notus(discord.Client):
             )
         ):
             return
+
+        self.process_commands(message)
 
 
 notus = Notus(config)
