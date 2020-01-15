@@ -91,15 +91,12 @@ class Core(commands.Cog):
         await ctx.send("Cya")
         await self.notus.logout()
 
-    # Now this piece of shit code is partially broken.
-    # Large output evals used to upload to pastebin but their API is now private.
-    # Instead large output evals are not printed at all thus causing a problem when debugging.
-    # Temporarily disabled until fixed.
-    # Also leaving that one to @Ovyerus because my last 6 attempts at fixing it failed.
-
+    # Eval code provided by Pandentia over at Thessia.
+    # More of his work here: https://github.com/Pandentia
     @commands.command(aliases=["debug"])
     @check.instance_owner()
     async def eval(self, ctx: commands.Context, code: commands.Greedy[str]):
+        """Run lots of code"""
         if self._eval.get("env") is None:
             self._eval["env"] = {}
         if self._eval.get("count") is None:
@@ -167,18 +164,22 @@ class Core(commands.Cog):
         else:
             message += "\n```"
 
-        try:
-            if ctx.msg.author.id == self.notus.user.id:
-                await ctx.msg.edit(content=message)
-            else:
-                await ctx.send(message)
-        except discord.HTTPException:
-            await ctx.msg.channel.trigger_typing()
-            await ctx.send("Output was too big to be printed.")
+        # Handle a message thats too long for Discord
+        if len(message) > 2000:
+            message = "\n".join(message.split("\n")[1:-1])  # Remove codeblock
 
+            async with self.notus.session.post(
+                "https://hastebin.com/documents",
+                data=message.encode(),
+                headers={"Content-Type": "text/plain"},
+            ) as resp:
+                data = await resp.json()
 
-# Eval code provided by Pandentia over at Thessia.
-# More of his work here: https://github.com/Pandentia
+            await ctx.send(
+                f"Output too long, view online: https://hastebin.com/{data['key']}.py"
+            )
+        else:
+            await ctx.send(message)
 
 
 def setup(notus):
