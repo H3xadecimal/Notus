@@ -1,6 +1,7 @@
-import textwrap
 import time
 import traceback
+from inspect import cleandoc
+from textwrap import indent
 from typing import TYPE_CHECKING
 
 from discord.ext import commands
@@ -104,18 +105,18 @@ class Core(commands.Cog):
 
         # let's make this safe to work with
         code = ctx.suffix.replace("```py\n", "").replace("```", "").replace("`", "")
-        to_eval = textwrap.dedent(
+        to_eval = cleandoc(
             f"""
             async def func(self):
               try:
-                {textwrap.index(code, '    ')}
+                {indent(code, '    ')}
               finally:
                   if not cleared:
                     self.eval_data["env"].update(locals())
                   else:
                       cleared = False
         """
-        ).strip()
+        )
         before = time.monotonic()
 
         cleared = False  # noqa: F841
@@ -148,7 +149,7 @@ class Core(commands.Cog):
             rest = code[1:]
             rest = "\n".join(rest)
             count_len = len(str(count)) + 2
-            rest = textwrap.indent(textwrap.indent(rest, "...: "), " " * count_len)
+            rest = indent(indent(rest, "...: "), " " * count_len)
 
             in_ = f"In [{count}]: {first}\n{rest}"
 
@@ -167,7 +168,7 @@ class Core(commands.Cog):
         if len(message) > 2000:
             message = "\n".join(message.split("\n")[1:-1])  # Remove codeblock
 
-            async with self.notus.session.post(
+            async with ctx.typing(), self.notus.session.post(
                 "https://hastebin.com/documents",
                 data=message.encode(),
                 headers={"Content-Type": "text/plain"},

@@ -1,172 +1,167 @@
 import asyncio
 import mimetypes
+from typing import TYPE_CHECKING, List
 
-import aiohttp
 import discord
-from discord.ext import commands, groups
+from discord.ext import commands
 
 from utils import check
 
+if TYPE_CHECKING:
+    from notus import Notus
 
-class Utilities:
-    def __init__(self, notus):
+
+class MultiStringConverter(commands.Converter):
+    def __init__(self, *strings: List[str]):
+        self.strings = strings
+
+    async def convert(self, ctx, arg):
+        if arg not in self.strings:
+            raise commands.BadArgument(f"Must be one of `{','.join(self.strings)}`")
+        else:
+            return arg
+
+
+class Utilities(commands.Cog):
+    def __init__(self, notus: Notus):
         self.notus = notus
-        self.db = notus.db
 
     @property
     def settings(self):
-        return self.db["settings"]
+        return self.notus.db["settings"]
 
     @commands.command()
-    async def ping(self, ctx):
-        """Pong."""
+    async def ping(self, ctx: commands.Context):
+        """Pong"""
         await ctx.send("Pong.")
 
-    @group(name="set")
-    @check.instance_owner()
-    async def utils_set(self, ctx):
-        """Sets various stuff."""
-        await self.notus.send_command_help(ctx)
+    @commands.group("set")
+    @check.owner()
+    async def set_(self, ctx: commands.Context):
+        await ctx.send_help(ctx.command)
 
-    @utils_set.command(name="nickname", aliases=["nick"], usage="<name>")
-    async def utils_set_nickname(self, ctx):
-        """Sets bot nickname."""
-        if not ctx.args:
-            return await self.notus.send_command_help(ctx)
+    @set_.command("nickname", aliases=["nick"])
+    @check.permissions.me(discord.Permissions(change_nickname=True))
+    async def set_nickname(self, ctx: commands.Context, nickname: str):
+        """Set the bot's nickname"""
+        if len(nickname) > 32:
+            return await ctx.send("Nickname is too long. Limit is 32 characters.")
 
         try:
-            if len(ctx.suffix) < 32:
-                await ctx.msg.guild.me.edit(nick=ctx.suffix)
-                await ctx.send("Beep Boop. Done.")
-            else:
-                await ctx.send(
-                    "Character count is over 32!... Try with less characters."
-                )
-        except:
-            await ctx.send(
-                "Error changing nickname, either "
-                "`Lacking Permissions` or `Something Blew Up`."
-            )
+            await ctx.me.edit(nickname=nickname)
+            await ctx.send(":thumbsup:")
+        except Exception:
+            await ctx.send("Failed to change nickname. :shrug:")
 
-    @utils_set.command(name="game", usage="[game]")
-    async def utils_set_game(self, ctx):
-        """Sets Bot's playing status."""
-        await ctx.send("This command needs to be rewritten to adapt to Discord RPC.")
+    @set_.command("game")
+    async def set_game(self, ctx: commands.Context, game: str):
+        """Set the bot's game"""
+        pass
 
-    @utils_set.command(name="status", usage="[status]")
-    async def utils_set_status(self, ctx):
-        """Sets bot presence."""
-        if ctx.args:
-            status = getattr(discord.Status, ctx.args[0], discord.Status.online)
-        else:
-            status = discord.Status.online
+    @set_.command("status")
+    async def set_status(
+        self,
+        ctx: commands.Context,
+        status: MultiStringConverter("online", "dnd", "idle", "invisible"),
+    ):
+        """Set the bot's status"""
+        status = getattr(discord.Status, status)
 
         await self.notus.change_presence(status=status)
-        await ctx.send("Changed status!")
+        await ctx.send(":thumbsup:")
 
-    @utils_set.command(name="owner", aliases=["owners"], usage="<owners: multiple>")
-    async def utils_set_owner(self, ctx):
-        """Sets other owners."""
-        if not ctx.args:
-            return await self.notus.send_command_help(ctx)
+    @set_.command("avatar")
+    async def set_avatar(self, ctx, url: str = None):
+        """Set the bot's avatar"""
+        if not url and not ctx.message.attachments:
+            return await ctx.send("Please give an avatar URL or as an attachment")
+        elif not url:
+            url = ctx.message.attachments[0].url
 
-        owners = [await self.lookups.member_lookup(ctx, arg) for arg in ctx.args]
-        owners = [
-            str(x.id)
-            for x in owners
-            if isinstance(x, discord.Member)
-            and str(x.id) not in self.settings["owners"]
-        ]
-        self.settings["owners"].extend(owners)
+        ext = url.split(".")[-1]
+        mime = mimetypes.types_map.get(ext)
 
-        if len(owners) == 1:
-            await ctx.send("Set other owner.")
-        else:
-            await ctx.send("Set other owners.")
-
-    @utils_set.command(name="avatar")
-    async def utils_set_avatar(self, ctx, *, url=None):
-        """Changes the bots avatar"""
-        if not url:
-            if not ctx.msg.attachments:
-                return await ctx.send("No avatar found! Provide an URL or attachment!")
-            else:
-                url = ctx.msg.attachments[0].url
+        if mime not in ("image/png", "image/jpeg", "image/webp"):
+            return await ctx.send(f"Unsupported mimetype `{mime}`")
 
         async with ctx.typing():
-            ext = url.split(".")[-1]
-            mime = mimetypes.types_map.get(ext)
-
-            if mime is not None and not mime.startswith("image"):
-                # None can still be an image
-                return await ctx.send("URL or attachment is not an Image!")
-
-            async with aiohttp.ClientSession() as s, s.get(url) as r:
-                if 200 <= r.status < 300:
-                    content = await r.read()
-                else:
-                    return await ctx.send(
-                        "Invalid response code: {}".format(r.status_code)
-                    )
+            async with self.notus.session.get(url) as resp:
+                data = await resp.read()
 
             try:
-                await self.notus.user.edit(avatar=content)
-            except BaseException:  # I don't know the exact Exception type
-                return await ctx.send("Avatar was too big or not an image!")
+                await self.notus.user.edit(avatar=data)
+            except Exception:
+                return await ctx.send("Failed to set avatar.")
 
-        await ctx.send("Successfully updated avatar!")
+        await ctx.send(":thumbsup:")
 
-    @group(name="blacklist")
-    @check.instance_owner()
-    async def blacklist_commands(self, ctx):
-        """Prevents a user from using the bot globally."""
-        await self.notus.send_command_help(ctx)
+    @commands.group()
+    @check.owner()
+    async def blacklist(self, ctx: commands.Context):
+        """Prevent a user from using the bot at all"""
+        await ctx.send_help(ctx.command)
 
-    @blacklist_commands.command(name="add")
-    async def add_blacklist(self, ctx, *, user: discord.Member):
-        """Adds a user to blacklist."""
-        if str(user.id) not in self.settings["blacklist"]:
+    @blacklist.command("list")
+    async def blacklist_list(self, ctx: commands.Context):
+        """List all currently blacklisted users"""
+        users = [self.notus.get_user(x) or x for x in self.settings["blacklist"]]
+
+        for i, user in enumerate(users):
+            if not isinstance(user, int):
+                pass
+
             try:
-                self.settings["blacklist"].append(str(user.id))
-                await ctx.send("User blacklisted.")
-            except:
-                await ctx.send("An error occured.")
-        else:
-            await ctx.send("User already blacklisted.")
+                user = await self.notus.fetch_user(user)
+                users[i] = user
+            except discord.DiscordException:
+                users[i] = f"**Unknown user** ({user})"
 
-    @blacklist_commands.command(name="remove")
-    async def remove_blacklist(self, ctx, *, user: discord.Member):
-        """Removes a user from blacklist."""
-        if str(user.id) not in self.settings["blacklist"]:
-            await ctx.send("User is not blacklisted.")
-        else:
-            self.settings["blacklist"].remove(str(user.id))
-            await ctx.send("User removed from blacklist.")
+        users = [
+            (
+                f"**{user.name}#{user.discriminator}** ({user.id})"
+                if isinstance(x, discord.User)
+                else x
+            )
+            for x in users
+        ]
 
-    # Needs Testing.
+        await ctx.send("__Currently blacklisted users__\n" + "\n".join(users))
 
-    @command(aliases=["clean"])
-    @check.instance_guild()
-    async def cleanup(self, ctx):
-        """Cleans up the bot's messages."""
-        msgs = await ctx.msg.channel.history(limit=100).flatten()
-        msgs = [msg for msg in msgs if msg.author.id == self.notus.user.id]
+    @blacklist.command("add")
+    async def blacklist_add(self, ctx: commands.Context, user: discord.User):
+        """Add a user to the blacklist"""
+        if user.id in self.settings["blacklist"]:
+            return await ctx.send("User already blacklisted.")
 
-        if msgs and ctx.has_permission("manage_messages"):
-            await ctx.msg.channel.delete_messages(msgs)
-        elif msgs:
-            for msg in msgs:
-                await msg.delete()
-        else:
+        self.settings["blacklist"].append(user.id)
+        await ctx.send("User blacklisted.")
+
+    @blacklist.command("remove")
+    async def blacklist_remove(self, ctx: commands.Context, user: discord.User):
+        """Remove a user from the blacklist"""
+        if user.id not in self.settings["blacklist"]:
+            return await ctx.send("User is not blacklisted")
+
+        self.settings["blacklist"].remove(user.id)
+        await ctx.send("User removed from blacklist.")
+
+    @commands.command(aliases=["clean"])
+    @check.guild()
+    async def cleanup(self, ctx: commands.Command):
+        """Clean up the bot's messages"""
+        msgs = await ctx.channel.history(limit=100).flatten()
+        msgs = [x for x in msgs if x.author.id == self.notus.user.id]
+
+        if not msgs:
             return
 
-        msg = await ctx.send("Cleaned `{}`".format(len(msgs)))
-        await asyncio.sleep(2.5)
-        await msg.delete()
-
-
-# Needs Testing.
+        if ctx.me.permissions_in(ctx.channel).manage_messages:
+            await ctx.msg.channel.delete_messages(msgs)
+        else:
+            for msg in msgs:
+                await msg.delete()
+                await asyncio.sleep(1.3)  # Try to avoid getting ratelimited
 
 
 def setup(notus):
-    notus.add_cog(utilities())
+    notus.add_cog(Utilities)
