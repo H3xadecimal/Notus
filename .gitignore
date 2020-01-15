@@ -4,5 +4,4 @@ pm2.json
 logs/*
 **/__pycache__
 *.rdb
-.vscode/*
 .notus_db/*
