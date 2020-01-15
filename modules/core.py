@@ -3,7 +3,6 @@ import time
 import traceback
 from typing import TYPE_CHECKING
 
-import discord
 from discord.ext import commands
 
 from utils import check
@@ -15,17 +14,12 @@ if TYPE_CHECKING:
 class Core(commands.Cog):
     def __init__(self, notus: Notus):
         self.notus = notus
-        self._eval = {}
 
-        self.post_load()
-
-    @property
-    def settings(self):
-        return self.notus.db["settings"]
-
-    def post_load(self):
         if "modules" not in self.settings:
             self.settings["modules"] = []
+
+        if "eval" not in self.notus.db:
+            self.notus.db["eval"] = {"env": {}, "count": 0}
 
         for module in self.settings["modules"]:
             if module not in self.notus.extensions:
@@ -36,6 +30,14 @@ class Core(commands.Cog):
 
                     print(f"Extension `{module}` blew up.")
                     print("".join(traceback.format_tb(e.__traceback__)))
+
+    @property
+    def settings(self):
+        return self.notus.db["settings"]
+
+    @property
+    def eval_data(self):
+        return self.notus.db["eval"]
 
     @commands.group(aliases=["cog"])
     @check.owner()  # TODO: does this apply to whole group?
@@ -97,21 +99,8 @@ class Core(commands.Cog):
     @check.instance_owner()
     async def eval(self, ctx: commands.Context, code: commands.Greedy[str]):
         """Run lots of code"""
-        if self._eval.get("env") is None:
-            self._eval["env"] = {}
-        if self._eval.get("count") is None:
-            self._eval["count"] = 0
 
-        self._eval["env"].update(
-            {
-                "ctx": ctx,
-                "message": ctx.message,
-                "channel": ctx.message.channel,
-                "guild": ctx.message.guild,
-                "server": ctx.message.guild,
-                "author": ctx.message.author,
-            }
-        )
+        self.eval_data["env"].update({"ctx": ctx})
 
         # let's make this safe to work with
         code = ctx.suffix.replace("```py\n", "").replace("```", "").replace("`", "")
@@ -121,13 +110,23 @@ class Core(commands.Cog):
               try:
                 {textwrap.index(code, '    ')}
               finally:
-                self._eval['env'].update(locals())
+                  if not cleared:
+                    self.eval_data["env"].update(locals())
+                  else:
+                      cleared = False
         """
         ).strip()
         before = time.monotonic()
 
+        cleared = False  # noqa: F841
+
+        def clear():
+            self.eval_data["env"] = {}
+            self.eval_data["count"] = 0
+            cleared = True  # noqa: F841
+
         try:
-            exec(to_eval, self._eval["env"])
+            exec(to_eval, self._eval["env"])  # noqa: S102
 
             func = self._eval["env"]["func"]
             output = await func(self)
