@@ -40,7 +40,7 @@ class Core(commands.Cog):
     def eval_data(self):
         return self.notus.db["eval"]
 
-    @commands.group(aliases=["cog"])
+    @commands.group(aliases=["cog"], invoke_without_command=True)
     @check.owner()  # TODO: does this apply to whole group?
     async def module(self, ctx: commands.Context):
         """Module management"""

@@ -35,7 +35,7 @@ class Utilities(commands.Cog):
         """Pong"""
         await ctx.send("Pong.")
 
-    @commands.group("set")
+    @commands.group("set", invoke_without_command=True)
     @check.owner()
     async def set_(self, ctx: commands.Context):
         await ctx.send_help(ctx.command)
@@ -95,7 +95,7 @@ class Utilities(commands.Cog):
 
         await ctx.send(":thumbsup:")
 
-    @commands.group()
+    @commands.group(invoke_without_command=True)
     @check.owner()
     async def blacklist(self, ctx: commands.Context):
         """Prevent a user from using the bot at all"""
