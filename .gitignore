@@ -6,3 +6,4 @@ logs/*
 *.rdb
 .vscode/*
 .notus_db/*
+test.py
