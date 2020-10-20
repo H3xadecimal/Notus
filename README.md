@@ -1,6 +1,6 @@
 # The remains of a mistake.
 
-Notus was a Discord bot built by Hexadecimal and Ovyerus while being assisted by sr229 and Martmists.
+Notus was a Discord bot built by Hexadecimal and Ovyerus while being assisted by sr229, Martmists and Pandentia.
 
 Originally created on December 10th 2016 when Discord Bot creation was at its prime, Notus very quickly died with the rising of
 better standards for bots, overly ambitious plans and general "could not be fucked".
