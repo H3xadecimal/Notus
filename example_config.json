@@ -1,5 +1,5 @@
 {
-  "COMMENT": "Copy this file as 'config.json' and substitute the values for what you want.",
-  "AMETHYST_TOKEN": "TOKEN",
-  "AMETHYST_PREFIXES": ["test "]
+    "COMMENT": "Copy this file as 'config.json' and substitute the values for what you want.",
+    "NOTUS_TOKEN": "TOKEN",
+    "NOTUS_PREFIXES": ["test "]
 }

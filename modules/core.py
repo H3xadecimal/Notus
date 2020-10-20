@@ -61,6 +61,20 @@ class Core(commands.Cog):
                 "Try using `module reload <name>` instead."
             )
 
+    @commands.command()
+    @check.instance_owner()
+    async def arguments(self, ctx):
+        """Lists all arguments."""
+        await ctx.send(
+            "Arguments for modules include: `load, unload & reload`.")
+
+    @commands.command(aliases=['kys'])
+    @check.instance_owner()
+    async def shutdown(self, ctx):
+        """Shuts down the bot.... Duh."""
+        await ctx.send("Logging out...")
+        await self.notus.logout()
+
     @module.command("unload")
     async def module_unload(self, ctx: commands.Context, *, module: str):
         module = "modules." + module.lower()
@@ -72,6 +86,25 @@ class Core(commands.Cog):
             await ctx.send("Module unloaded.")
         else:
             await ctx.send("That module is not currently loaded.")
+
+    @commands.command(aliases=['debug'], usage='<code>')
+    @check.instance_owner()
+    async def eval(self, ctx):
+        await ctx.send("This command is currently disabled.")
+#        if self._eval.get('env') is None:
+#            self._eval['env'] = {}
+#        if self._eval.get('count') is None:
+#            self._eval['count'] = 0
+#
+#        self._eval['env'].update({
+#            'ctx': ctx,
+#            'message': ctx.msg,
+#            'channel': ctx.msg.channel,
+#            'guild': ctx.msg.guild,
+#            'server': ctx.msg.guild,
+#            'author': ctx.msg.author
+#        })
+#
 
     @module.command("reload")
     async def module_reload(self, ctx: commands.Context, *, module: str):

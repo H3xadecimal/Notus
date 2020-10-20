@@ -35,10 +35,18 @@ class Utilities(commands.Cog):
         """Pong"""
         await ctx.send("Pong.")
 
+
+    @commands.group(name='set') # Needs testing.
+    @check.instance_owner()
+    async def utils_set(self, ctx):
+        """Sets various stuff."""
+        await self.notus.send_command_help(ctx)
+
     @commands.group("set", invoke_without_command=True)
     @check.owner()
     async def set_(self, ctx: commands.Context):
         await ctx.send_help(ctx.command)
+
 
     @set_.command("nickname", aliases=["nick"])
     @check.permissions.me(discord.Permissions(change_nickname=True))
@@ -95,11 +103,37 @@ class Utilities(commands.Cog):
 
         await ctx.send(":thumbsup:")
 
+            try:
+                await self.notus.user.edit(avatar=content)
+            except BaseException:  # I don't know the exact Exception type
+                return await ctx.send("Avatar was too big or not an image!")
+
+        await ctx.send("Successfully updated avatar!")
+
+    @commands.group(name="blacklist") # also needs testing
+    @check.instance_owner()
+    async def blacklist_commands(self, ctx):
+        """Prevents a user from using the bot globally."""
+        await self.notus.send_command_help(ctx)
+
+    @blacklist_commands.command(name="add")
+    async def add_blacklist(self, ctx, *, user: discord.Member):
+        """Adds a user to blacklist."""
+        if str(user.id) not in self.settings['blacklist']:
+            try:
+                self.settings['blacklist'].append(str(user.id))
+                await ctx.send("User blacklisted.")
+            except:
+                await ctx.send("An error occured.")
+        else:
+            await ctx.send("User already blacklisted.")
+
     @commands.group(invoke_without_command=True)
     @check.owner()
     async def blacklist(self, ctx: commands.Context):
         """Prevent a user from using the bot at all"""
         await ctx.send_help(ctx.command)
+
 
     @blacklist.command("list")
     async def blacklist_list(self, ctx: commands.Context):
@@ -109,6 +143,14 @@ class Utilities(commands.Cog):
         for i, user in enumerate(users):
             if not isinstance(user, int):
                 pass
+
+
+    @commands.command(aliases=['clean'])
+    @check.instance_guild()
+    async def cleanup(self, ctx):
+        """Cleans up the bot's messages."""
+        msgs = await ctx.msg.channel.history(limit=100).flatten()
+        msgs = [msg for msg in msgs if msg.author.id == self.notus.user.id]
 
             try:
                 user = await self.notus.fetch_user(user)
