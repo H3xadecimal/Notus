@@ -61,6 +61,32 @@ class Core(commands.Cog):
                 "Try using `module reload <name>` instead."
             )
 
+    @module.command("unload")
+    async def module_unload(self, ctx: commands.Context, *, module: str):
+        module = "modules." + module.lower()
+
+        if module in self.notus.extensions:
+            self.notus.unload_extension(module)
+            self.settings["modules"].removbe(module)
+
+            await ctx.send("Module unloaded.")
+        else:
+            await ctx.send("That module is not currently loaded.")
+
+    @module.command("reload")
+    async def module_reload(self, ctx: commands.Context, *, module: str):
+        module = "modules." + module.lower()
+
+        if module in self.notus.extensions:
+            self.notus.reload_extension(module)
+
+            await ctx.send("Module reloaded.")
+        else:
+            await ctx.send(
+                "That module isn't currently loaded.\n"
+                "Try using `module load <name>` instead."
+            )
+
     @commands.command()
     @check.instance_owner()
     async def arguments(self, ctx):
@@ -75,17 +101,11 @@ class Core(commands.Cog):
         await ctx.send("Logging out...")
         await self.notus.logout()
 
-    @module.command("unload")
-    async def module_unload(self, ctx: commands.Context, *, module: str):
-        module = "modules." + module.lower()
-
-        if module in self.notus.extensions:
-            self.notus.unload_extension(module)
-            self.settings["modules"].removbe(module)
-
-            await ctx.send("Module unloaded.")
-        else:
-            await ctx.send("That module is not currently loaded.")
+# Now this piece of shit code is partially broken.
+# Large output evals used to upload to pastebin but their API is now private.
+# Instead large output evals are not printed at all thus causing a problem when debugging.
+# Temporarily disabled until fixed.
+# Also leaving that one to @Ovyerus because my last 6 attempts at fixing it failed.
 
     @commands.command(aliases=['debug'], usage='<code>')
     @check.instance_owner()
@@ -105,114 +125,66 @@ class Core(commands.Cog):
 #            'author': ctx.msg.author
 #        })
 #
-
-    @module.command("reload")
-    async def module_reload(self, ctx: commands.Context, *, module: str):
-        module = "modules." + module.lower()
-
-        if module in self.notus.extensions:
-            self.notus.reload_extension(module)
-
-            await ctx.send("Module reloaded.")
-        else:
-            await ctx.send(
-                "That module isn't currently loaded.\n"
-                "Try using `module load <name>` instead."
-            )
-
-    @commands.command(aliases=["kys"])
-    @check.owner()
-    async def shutdown(self, ctx: commands.Context):
-        """Shuts down the bot... duh"""
-        await ctx.send("Cya")
-        await self.notus.logout()
-
-    # Eval code provided by Pandentia over at Thessia.
-    # More of his work here: https://github.com/Pandentia
-    @commands.command(aliases=["debug"])
-    @check.instance_owner()
-    async def eval(self, ctx: commands.Context, code: commands.Greedy[str]):
-        """Run lots of code"""
-
-        self.eval_data["env"].update({"ctx": ctx})
-
         # let's make this safe to work with
-        code = ctx.suffix.replace("```py\n", "").replace("```", "").replace("`", "")
-        to_eval = cleandoc(
-            f"""
-            async def func(self):
-              try:
-                {indent(code, '    ')}
-              finally:
-                  if not cleared:
-                    self.eval_data["env"].update(locals())
-                  else:
-                      cleared = False
-        """
-        )
-        before = time.monotonic()
+#        code = ctx.suffix.replace('```py\n', '').replace('```', '').replace('`', '')
+#        _code = "async def func(self):\n  try:\n{}\n  finally:\n    self._eval['env'].update(locals())"\
+#                .format(textwrap.indent(code, '    '))
+#        before = time.monotonic()
+#
+        # noinspection PyBroadException
+#        try:
+#            exec(_code, self._eval['env'])
+#
+#            func = self._eval['env']['func']
+#            output = await func(self)
+#
+#            if output is not None:
+#                output = repr(output)
+#        except Exception as e:
+#            output = '{}: {}'.format(type(e).__name__, e)
+#
+#        after = time.monotonic()
+#        self._eval['count'] += 1
+#        count = self._eval['count']
+#        code = code.split('\n')
+#
+#        if len(code) == 1:
+#            _in = 'In [{}]: {}'.format(count, code[0])
+#        else:
+#            _first_line = code[0]
+#            _rest = code[1:]
+#            _rest = '\n'.join(_rest)
+#            _countlen = len(str(count)) + 2
+#            _rest = textwrap.indent(_rest, '...: ')
+#            _rest = textwrap.indent(_rest, ' ' * _countlen)
+#            _in = 'In [{}]: {}\n{}'.format(count, _first_line, _rest)
+#
+#        message = '```py\n{}'.format(_in)
+#        ms = int(round((after - before) * 1000))
+#
+#        if output is not None:
+#            message += '\nOut[{}]: {}'.format(count, output)
+#
+#        if ms > 100:  # noticeable delay
+#            message += '\n# {} ms\n```'.format(ms)
+#        else:
+#            message += '\n```'
+#
+#        try:
+#            if ctx.msg.author.id == self.notus.user.id:
+#                await ctx.msg.edit(content=message)
+#            else:
+#                await ctx.send(message)
+#        except discord.HTTPException:
+#            await ctx.msg.channel.trigger_typing()
+#            await ctx.send('Output was too big to be printed.')
 
-        cleared = False  # noqa: F841
+        # Eval code provided by Pandentia over at Thessia.
+        # More of his work here: https://github.com/Pandentia
 
-        def clear():
-            self.eval_data["env"] = {}
-            self.eval_data["count"] = 0
-            cleared = True  # noqa: F841
+# Sidenote, uncommenting all of this is gonna be fun, goodluck Ovy.
 
-        try:
-            exec(to_eval, self._eval["env"])  # noqa: S102
 
-            func = self._eval["env"]["func"]
-            output = await func(self)
-
-            if output is not None:
-                output = repr(output)
-        except Exception as e:
-            output = f"{type(e).__name__}: {e}"
-
-        after = time.monotonic()
-        self._eval["count"] += 1
-        count = self._eval["count"]
-        code = code.split("\n")
-
-        if len(code) == 1:
-            in_ = f"In [{count}]: {code[0]}"
-        else:
-            first = code[0]
-            rest = code[1:]
-            rest = "\n".join(rest)
-            count_len = len(str(count)) + 2
-            rest = indent(indent(rest, "...: "), " " * count_len)
-
-            in_ = f"In [{count}]: {first}\n{rest}"
-
-        message = f"```py\n{in_}"
-        ms = round((after - before) * 1000)
-
-        if output is not None:
-            message += f"\nOut[{count}]: {output}"
-
-        if ms > 100:  # noticeable delay
-            message += f"\n# {ms} ms\n```".format(ms)
-        else:
-            message += "\n```"
-
-        # Handle a message thats too long for Discord
-        if len(message) > 2000:
-            message = "\n".join(message.split("\n")[1:-1])  # Remove codeblock
-
-            async with ctx.typing(), self.notus.session.post(
-                "https://hastebin.com/documents",
-                data=message.encode(),
-                headers={"Content-Type": "text/plain"},
-            ) as resp:
-                data = await resp.json()
-
-            await ctx.send(
-                f"Output too long, view online: https://hastebin.com/{data['key']}.py"
-            )
-        else:
-            await ctx.send(message)
 
 
 def setup(notus):
